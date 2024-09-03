@@ -7,6 +7,20 @@ screen_height = 500
 screen_width = 500
 
 
+class Chest:
+    def __init__(self, x, y):
+        self.width = 30
+        self.height = 30
+        self.x = x
+        self.y = y
+        self.width = 30
+        self.height = 30
+
+    def draw(self):
+        rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, WHITE, rec)
+
+
 class Player:
     def __init__(self):
         self.width = 50
@@ -39,7 +53,8 @@ if __name__ == "__main__":
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
     player = Player()
-
+    chest = Chest(100, 100)
+    chest2 = Chest(200, 200)
     running = True
     while running:
         screen.blit(background_image, (0, 0))
@@ -47,6 +62,8 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 running = False
 
+        chest.draw()
+        chest2.draw()
         player.update_pose()
         player.draw()
         pygame.display.flip()
