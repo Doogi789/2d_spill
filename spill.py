@@ -13,12 +13,11 @@ class Chest:
         self.height = 30
         self.x = x
         self.y = y
-        self.width = 30
-        self.height = 30
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def draw(self):
-        rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, WHITE, rec)
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, WHITE, self.rec)
 
 
 class Player:
@@ -27,7 +26,8 @@ class Player:
         self.height = 50
         self.x = screen_width // 2 - self.width // 2
         self.y = screen_height // 2 - self.height // 2
-        self.speed = 1
+        self.speed = 10
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def update_pose(self):
         button = pygame.key.get_pressed()
@@ -42,8 +42,12 @@ class Player:
             self.y += self.speed
 
     def draw(self):
-        rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, RED, rec)
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, RED, self.rec)
+
+    def koliderer(self, other):
+        if self.rec.colliderect(other.rec):
+            print("hund")
 
 
 if __name__ == "__main__":
@@ -54,7 +58,8 @@ if __name__ == "__main__":
 
     player = Player()
     chest = Chest(100, 100)
-    chest2 = Chest(200, 200)
+    print(type(chest), type(player))
+
     running = True
     while running:
         screen.blit(background_image, (0, 0))
@@ -63,8 +68,8 @@ if __name__ == "__main__":
                 running = False
 
         chest.draw()
-        chest2.draw()
         player.update_pose()
         player.draw()
+        player.koliderer(chest)
         pygame.display.flip()
         pygame.time.Clock().tick(20)
