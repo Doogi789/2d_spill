@@ -1,5 +1,5 @@
 import pygame
-
+from random import randint
 
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -75,22 +75,19 @@ if __name__ == "__main__":
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
     player = Player()
-    chest = Chest("chest 1", 100, 100)
-    chest_2 = Chest("chest 2", 200, 200)
-    print(type(chest), type(player))
-
+    # chests = [Chest("chest 1", 100, 100), Chest("chest 2", 100, 200), ("chest"]
+    chests = [Chest("chest " + str(x), randint(0, 400), randint(0, 400)) for x in range(5)]
     running = True
     while running:
         screen.blit(background_image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-        chest.draw()
-        chest_2.draw()
+        for chest in chests:
+            chest.draw()
         player.update_pose()
         player.draw()
-        player.koliderer([chest, chest_2])
+        player.koliderer(chests)
 
         pygame.display.flip()
         pygame.time.Clock().tick(20)
