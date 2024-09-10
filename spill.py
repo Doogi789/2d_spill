@@ -7,6 +7,26 @@ screen_height = 500
 screen_width = 500
 
 
+class Wall:
+    def __init__(self, name, x, y):
+        self.name = name
+        self.width = 30
+        self.height = 30
+        self.x = x
+        self.y = y
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.image = pygame.image.load("wall.png")
+        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+    def draw(self):
+        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
+
+
 class Chest:
     def __init__(self, name, x, y):
         self.name = name
@@ -16,11 +36,10 @@ class Chest:
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.image = pygame.image.load("chest.png")
+        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
 
     def draw(self):
-        # self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rec = screen.blit(self.image, (self.x, self.y))
-        # pygame.draw.rect(screen, "chest.png", self.rec)
+        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
 
     def __str__(self):
         return self.name
@@ -30,8 +49,8 @@ class Chest:
 
 class Player:
     def __init__(self):
-        self.width = 50
-        self.height = 50
+        self.width = 30
+        self.height = 30
         self.x = screen_width // 2 - self.width // 2
         self.y = screen_height // 2 - self.height // 2
         self.speed = 10
@@ -65,7 +84,16 @@ class Player:
                 print(self, "collidered with ", obj)
                 collide = True
         if not collide:
-            print("No collisino")
+            print("No collision with chest")
+
+    def koliderer_wall(self, objects):
+        collide = False
+        for obj in objects:
+            if self.rec.colliderect(obj.rec):
+                print(self, "collidered with ", obj)
+                collide = True
+        if not collide:
+            print("No collision with wall")
 
 
 if __name__ == "__main__":
@@ -75,16 +103,22 @@ if __name__ == "__main__":
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
     player = Player()
-    # chests = [Chest("chest 1", 100, 100), Chest("chest 2", 100, 200), ("chest"]
-    chests = [Chest("chest " + str(x), randint(0, 400), randint(0, 400)) for x in range(5)]
+    walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
+    chests = [Chest("chest " + str(i), randint(0, 400), randint(0, 400)) for i in range(5)]
+
     running = True
     while running:
         screen.blit(background_image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+        print(walls)
         for chest in chests:
             chest.draw()
+        for wall in walls:
+            wall.draw()
+
+        player.koliderer(walls)
         player.update_pose()
         player.draw()
         player.koliderer(chests)
