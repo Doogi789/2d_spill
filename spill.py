@@ -53,7 +53,8 @@ class Player:
         self.height = 30
         self.x = screen_width // 2 - self.width // 2
         self.y = screen_height // 2 - self.height // 2
-        self.speed = 10
+        self.speed = 3
+        self.last_pos = [(self.x, self.y)]
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def __str__(self):
@@ -61,8 +62,9 @@ class Player:
 
     __repr__ = __str__
 
-    def update_pose(self):
+    def update_pose(self, objects):
         button = pygame.key.get_pressed()
+        self.last_pos.append((self.x, self.y))
 
         if button[pygame.K_a]:
             self.x -= self.speed
@@ -73,6 +75,21 @@ class Player:
         if button[pygame.K_s]:
             self.y += self.speed
 
+        for obj in objects:
+            if isinstance(obj, Chest):
+                if self.rec.colliderect(obj.rec):
+                    print(self, "collided with ", obj)
+                    print("hei")
+                    collide = True
+
+            elif isinstance(obj, Wall):
+                if self.rec.colliderect(obj.rec):
+                    self.x, self.y = self.last_pos[-3]
+                    print(self, "collided with ", obj)
+
+            else:
+                print("problem!", obj)
+
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
@@ -80,20 +97,19 @@ class Player:
     def koliderer(self, objects):
         collide = False
         for obj in objects:
-            if self.rec.colliderect(obj.rec):
-                print(self, "collidered with ", obj)
-                collide = True
-        if not collide:
-            print("No collision with chest")
+            if isinstance(obj, Chest):
+                if self.rec.colliderect(obj.rec):
+                    print(self, "collided with ", obj)
+                    print("hei")
+                    collide = True
 
-    def koliderer_wall(self, objects):
-        collide = False
-        for obj in objects:
-            if self.rec.colliderect(obj.rec):
-                print(self, "collidered with ", obj)
-                collide = True
-        if not collide:
-            print("No collision with wall")
+            elif isinstance(obj, Wall):
+                if self.rec.colliderect(obj.rec):
+                    print(self, "collided with ", obj)
+
+                    collide = True
+            else:
+                print("problem!", obj)
 
 
 if __name__ == "__main__":
@@ -106,22 +122,25 @@ if __name__ == "__main__":
     walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
     chests = [Chest("chest " + str(i), randint(0, 400), randint(0, 400)) for i in range(5)]
 
+    all_objects = walls + chests
+
     running = True
     while running:
         screen.blit(background_image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        print(walls)
+
         for chest in chests:
             chest.draw()
         for wall in walls:
             wall.draw()
 
-        player.koliderer(walls)
-        player.update_pose()
+        # player.koliderer(walls)
+        player.update_pose(walls)
+        player.update_pose(all_objects)
         player.draw()
-        player.koliderer(chests)
+        # player.koliderer(chests)
 
         pygame.display.flip()
         pygame.time.Clock().tick(20)
