@@ -1,10 +1,49 @@
 import pygame
 from random import randint
+import random
+
 
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 screen_height = 500
 screen_width = 500
+
+
+class Enemies:
+    def __init__(self, name, x, y):
+        self.name = name
+        self.width = 30
+        self.height = 30
+        self.x = x
+        self.y = y
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.last_pos = [(self.x, self.y)]
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+    def draw(self):
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, WHITE, self.rec)
+
+    def update_pose(self, objects):
+        self.last_pos.append((self.x, self.y))
+        dx = random.choice([-5, 0, 5])
+        dy = random.choice([-5, 0, 5])
+
+        self.x += dx
+        self.y += dy
+
+        for obj in objects:
+            if isinstance(obj, Wall):
+                if self.rec.colliderect(obj.rec):
+                    if len(self.last_pos) >= 3:
+                        self.x, self.y = self.last_pos[-3]
+                    else:
+                        self.x, self.y = self.last_pos[0]
+                    print(self, "collided with ", obj)
 
 
 class Wall:
@@ -79,12 +118,13 @@ class Player:
             if isinstance(obj, Chest):
                 if self.rec.colliderect(obj.rec):
                     print(self, "collided with ", obj)
-                    print("hei")
-                    collide = True
 
             elif isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
-                    self.x, self.y = self.last_pos[-3]
+                    if len(self.last_pos) >= 3:
+                        self.x, self.y = self.last_pos[-3]
+                    else:
+                        self.x, self.y = self.last_pos[0]
                     print(self, "collided with ", obj)
 
             else:
@@ -94,23 +134,6 @@ class Player:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
 
-    def koliderer(self, objects):
-        collide = False
-        for obj in objects:
-            if isinstance(obj, Chest):
-                if self.rec.colliderect(obj.rec):
-                    print(self, "collided with ", obj)
-                    print("hei")
-                    collide = True
-
-            elif isinstance(obj, Wall):
-                if self.rec.colliderect(obj.rec):
-                    print(self, "collided with ", obj)
-
-                    collide = True
-            else:
-                print("problem!", obj)
-
 
 if __name__ == "__main__":
     pygame.init()
@@ -118,8 +141,9 @@ if __name__ == "__main__":
     background_image = pygame.image.load("backgrunn.jpg")
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
+    enemies = [Enemies("enemy" + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
     player = Player()
-    walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
+    walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(5)]
     chests = [Chest("chest " + str(i), randint(0, 400), randint(0, 400)) for i in range(5)]
 
     all_objects = walls + chests
@@ -135,12 +159,13 @@ if __name__ == "__main__":
             chest.draw()
         for wall in walls:
             wall.draw()
+        for enemy in enemies:
+            enemy.update_pose(all_objects)
+            enemy.draw()
 
-        # player.koliderer(walls)
         player.update_pose(walls)
         player.update_pose(all_objects)
         player.draw()
-        # player.koliderer(chests)
 
         pygame.display.flip()
         pygame.time.Clock().tick(20)
