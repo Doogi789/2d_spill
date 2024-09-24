@@ -1,6 +1,5 @@
 import pygame
 from random import randint
-import random
 
 
 WHITE = (255, 255, 255)
@@ -18,6 +17,9 @@ class Enemies:
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.last_pos = [(self.x, self.y)]
+        self.speed = 2
+        self.target_y = randint(0, 500)
+        self.target_x = randint(0, 500)
 
     def __str__(self):
         return self.name
@@ -28,14 +30,27 @@ class Enemies:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, WHITE, self.rec)
 
-    def update_pose(self, objects):
+    def movement_enemy(self, objects):
         self.last_pos.append((self.x, self.y))
-        dx = random.choice([-5, 0, 5])
-        dy = random.choice([-5, 0, 5])
+        distance_x = self.target_x - self.x
+        distance_y = self.target_y - self.y
 
-        self.x += dx
-        self.y += dy
+        if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
+            if abs(distance_x) >= abs(distance_y):
+                if distance_x > 0:
+                    self.x += self.speed
+                else:
+                    self.x -= self.speed
+            else:
+                if distance_y > 0:
+                    self.y += self.speed
+                else:
+                    self.y -= self.speed
+        else:
+            self.target_y = randint(0, 500)
+            self.target_x = randint(0, 500)
 
+            """
         for obj in objects:
             if isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
@@ -44,6 +59,7 @@ class Enemies:
                     else:
                         self.x, self.y = self.last_pos[0]
                     print(self, "collided with ", obj)
+"""
 
 
 class Wall:
@@ -141,7 +157,7 @@ if __name__ == "__main__":
     background_image = pygame.image.load("backgrunn.jpg")
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-    enemies = [Enemies("enemy" + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
+    enemies = [Enemies("enemy " + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
     player = Player()
     walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(5)]
     chests = [Chest("chest " + str(i), randint(0, 400), randint(0, 400)) for i in range(5)]
@@ -160,7 +176,7 @@ if __name__ == "__main__":
         for wall in walls:
             wall.draw()
         for enemy in enemies:
-            enemy.update_pose(all_objects)
+            enemy.movement_enemy(all_objects)
             enemy.draw()
 
         player.update_pose(walls)
