@@ -3,10 +3,28 @@ from random import randint
 
 
 WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 screen_height = 1000
 screen_width = 1000
 
+class Tower:
+    width = 60
+    height = 90
+    def __init__(self, name, x, y):
+        self.x = x
+        self.y = y
+        self.rec = pygame.Rect( self.x, self.y,self.width, self.height)
+        self.name = name
+        self.image = pygame.image.load("tower.png")
+        self.scaled_image = pygame.transform.scale(self.image,(self.width, self.height))
+
+    def  __str__(self):
+        return self.name
+    __repr__ = __str__
+
+    def draw(self):
+        self.rec = screen.blit(self.scaled_image,(self.x, self.y))
 
 class Enemy:
     width = 30
@@ -22,6 +40,7 @@ class Enemy:
         self.speed = 2
         self.target_y = randint(0, screen_height - self.height)
         self.target_x = randint(0, screen_width - self.width)
+        print(self.x, self.y)
 
     def __str__(self):
         return self.name
@@ -74,7 +93,6 @@ class Wall:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.image = pygame.image.load("wall.png")
         self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
-        print("creating wall at", x, y)
 
     def __str__(self):
         return self.name
@@ -155,16 +173,6 @@ class Player:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
 
-
-class recipies:
-    def house():
-        chests = []
-        walls = []
-        enemis = []
-
-        return walls, chests, enemies
-
-
 def has_collision(x, y, width, height, all_objects):
     for obj in all_objects:
         print(
@@ -197,6 +205,7 @@ def create_world():
     enemies = []
     walls = []
     chests = []
+    towers = []
 
     kart = open("spill.map", "r")
     print(kart)
@@ -224,8 +233,12 @@ def create_world():
                 enemy = Enemy("enemy " + str(x) + str(y), x, y)
                 enemies.append(enemy)
                 all_objects.append(enemy)
+            elif col == "T":
+                tower = Tower("tower " + str(x) + str(y), x, y)
+                towers.append(tower)
+                all_objects.append(tower)
 
-    return enemies, walls, chests, all_objects, player
+    return enemies, walls, chests, all_objects, player, towers
 
 
 if __name__ == "__main__":
@@ -234,7 +247,7 @@ if __name__ == "__main__":
     background_image = pygame.image.load("backgrunn.jpg")
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-    enemies, walls, chests, all_objects, player = create_world()
+    enemies, walls, chests, all_objects, player, towers = create_world()
 
     crashable_objects = walls + chests
     print(type(crashable_objects))
@@ -253,6 +266,8 @@ if __name__ == "__main__":
         for enemy in enemies:
             enemy.movement_enemy(crashable_objects)
             enemy.draw()
+        for tower in towers:
+            tower.draw()
 
         player.update_pose(crashable_objects)
 
