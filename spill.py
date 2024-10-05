@@ -8,18 +8,20 @@ screen_height = 500
 screen_width = 500
 
 
-class Enemies:
+class Enemy:
+    width = 30
+    height = 30
+
     def __init__(self, name, x, y):
         self.name = name
-        self.width = 30
-        self.height = 30
+
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.last_pos = [(self.x, self.y)]
         self.speed = 2
-        self.target_y = randint(0, 500)
-        self.target_x = randint(0, 500)
+        self.target_y = randint(0, screen_height - self.height)
+        self.target_x = randint(0, screen_width - self.width)
 
     def __str__(self):
         return self.name
@@ -47,26 +49,26 @@ class Enemies:
                 else:
                     self.y -= self.speed
         else:
-            self.target_y = randint(0, 500)
-            self.target_x = randint(0, 500)
+            self.target_y = randint(0, screen_height - self.height)
+            self.target_x = randint(0, screen_width - self.width)
 
-            """
         for obj in objects:
             if isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
                     if len(self.last_pos) >= 3:
                         self.x, self.y = self.last_pos[-3]
+
                     else:
                         self.x, self.y = self.last_pos[0]
                     print(self, "collided with ", obj)
-"""
 
 
 class Wall:
+    width = 30
+    height = 30
+
     def __init__(self, name, x, y):
         self.name = name
-        self.width = 30
-        self.height = 30
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -83,10 +85,11 @@ class Wall:
 
 
 class Chest:
+    width = 30
+    height = 30
+
     def __init__(self, name, x, y):
         self.name = name
-        self.width = 30
-        self.height = 30
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -103,9 +106,10 @@ class Chest:
 
 
 class Player:
+    width = 30
+    height = 30
+
     def __init__(self):
-        self.width = 30
-        self.height = 30
         self.x = screen_width // 2 - self.width // 2
         self.y = screen_height // 2 - self.height // 2
         self.speed = 3
@@ -113,7 +117,7 @@ class Player:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def __str__(self):
-        return "Player"
+        return "Playmovement_enemyer"
 
     __repr__ = __str__
 
@@ -151,18 +155,74 @@ class Player:
         pygame.draw.rect(screen, RED, self.rec)
 
 
+class recipies:
+    def house():
+        chests = []
+        walls = []
+        enemis = []
+
+        return walls, chests, enemies
+
+
+def has_collision(x, y, width, height, all_objects):
+    for obj in all_objects:
+        print(
+            x,
+            y,
+            obj.x,
+            obj.y,
+            type(obj),
+        )
+        if x - obj.width < obj.x < x + obj.width and y - obj.height < obj.y < y + obj.height:
+            print("collision")
+            return True
+        print("ok")
+    print("NO COLLISIOk")
+    return False
+
+
+def find_available_x_y(width, height, all_objects):
+    while True:
+        x = randint(0, 500)
+        y = randint(0, 500)
+        if not has_collision(x, y, width, height, all_objects):
+            return x, y
+
+
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
     background_image = pygame.image.load("backgrunn.jpg")
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-    enemies = [Enemies("enemy " + str(i), randint(0, 300), randint(0, 300)) for i in range(1)]
     player = Player()
-    walls = [Wall("wall" + str(i), randint(0, 300), randint(0, 300)) for i in range(5)]
-    chests = [Chest("chest " + str(i), randint(0, 400), randint(0, 400)) for i in range(5)]
+    all_objects = [player]
 
-    all_objects = walls + chests
+    enemies = []
+    for i in range(2):
+        x, y = find_available_x_y(Enemy.width, Enemy.height, all_objects)
+        enemy = Enemy("Enemy" + str(i), x, y)
+        enemies.append(enemy)
+        all_objects.append(enemy)
+
+    walls = []
+    for i in range(5):
+        x, y = find_available_x_y(Wall.width, Wall.height, all_objects)
+        wall = Wall("wall" + str(i), x, y)
+        print(x, y, wall)
+        walls.append(wall)
+        all_objects.append(wall)
+
+    chests = []
+    for i in range(5):
+        x, y = find_available_x_y(Chest.width, Chest.height, all_objects)
+        chest = Chest("chest" + str(i), x, y)
+        print(x, y, chest)
+        chests.append(chest)
+        all_objects.append(chest)
+
+    crashable_objects = walls + chests
+    print(type(crashable_objects))
 
     running = True
     while running:
@@ -176,11 +236,11 @@ if __name__ == "__main__":
         for wall in walls:
             wall.draw()
         for enemy in enemies:
-            enemy.movement_enemy(all_objects)
-            enemy.draw()
+            enemy.movement_enemy(crashable_objects)
+        enemy.draw()
 
-        player.update_pose(walls)
-        player.update_pose(all_objects)
+        player.update_pose(crashable_objects)
+
         player.draw()
 
         pygame.display.flip()
