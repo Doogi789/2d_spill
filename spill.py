@@ -4,8 +4,8 @@ from random import randint
 
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
-screen_height = 500
-screen_width = 500
+screen_height = 1000
+screen_width = 1000
 
 
 class Enemy:
@@ -74,6 +74,7 @@ class Wall:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.image = pygame.image.load("wall.png")
         self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
+        print("creating wall at", x, y)
 
     def __str__(self):
         return self.name
@@ -189,37 +190,51 @@ def find_available_x_y(width, height, all_objects):
             return x, y
 
 
+def create_world():
+    print("creating world")
+    player = Player()
+    all_objects = [player]
+    enemies = []
+    walls = []
+    chests = []
+
+    kart = open("spill.map", "r")
+    print(kart)
+    x = 0
+    y = 0
+    print(x, y)
+
+    for line in kart.readlines():
+        print(line)
+        y += 30
+        x = 0
+        for col in line:
+            x += 30
+            if col == ".":
+                continue
+            elif col == "X":
+                wall = Wall("wall " + str(x) + str(y), x, y)
+                walls.append(wall)
+                all_objects.append(wall)
+            elif col == "C":
+                chest = Chest("chest " + str(x) + str(y), x, y)
+                chests.append(chest)
+                all_objects.append(chest)
+            elif col == "E":
+                enemy = Enemy("enemy " + str(x) + str(y), x, y)
+                enemies.append(enemy)
+                all_objects.append(enemy)
+
+    return enemies, walls, chests, all_objects, player
+
+
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
     background_image = pygame.image.load("backgrunn.jpg")
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-    player = Player()
-    all_objects = [player]
-
-    enemies = []
-    for i in range(2):
-        x, y = find_available_x_y(Enemy.width, Enemy.height, all_objects)
-        enemy = Enemy("Enemy" + str(i), x, y)
-        enemies.append(enemy)
-        all_objects.append(enemy)
-
-    walls = []
-    for i in range(5):
-        x, y = find_available_x_y(Wall.width, Wall.height, all_objects)
-        wall = Wall("wall" + str(i), x, y)
-        print(x, y, wall)
-        walls.append(wall)
-        all_objects.append(wall)
-
-    chests = []
-    for i in range(5):
-        x, y = find_available_x_y(Chest.width, Chest.height, all_objects)
-        chest = Chest("chest" + str(i), x, y)
-        print(x, y, chest)
-        chests.append(chest)
-        all_objects.append(chest)
+    enemies, walls, chests, all_objects, player = create_world()
 
     crashable_objects = walls + chests
     print(type(crashable_objects))
@@ -237,7 +252,7 @@ if __name__ == "__main__":
             wall.draw()
         for enemy in enemies:
             enemy.movement_enemy(crashable_objects)
-        enemy.draw()
+            enemy.draw()
 
         player.update_pose(crashable_objects)
 
