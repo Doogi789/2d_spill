@@ -10,16 +10,16 @@ screen_width = 1000
 
 
 class Tower:
-    width = 30
-    height = 30
+    width = 60
+    height = 90
 
     def __init__(self, name, x, y):
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.name = name
-     #   self.image = pygame.image.load("tower.png")
-     #   self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
+        self.image = pygame.image.load("tower.png")
+        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
 
     def __str__(self):
         return self.name
@@ -27,10 +27,7 @@ class Tower:
     __repr__ = __str__
 
     def draw(self):
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, BLUE, self.rec)
-
-
+        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
 
 class Enemy:
     width = 30
@@ -87,7 +84,6 @@ class Enemy:
                         self.x, self.y = self.last_pos[0]
                     print(self, "collided with ", obj)
 
-
 class Wall:
     width = 30
     height = 30
@@ -107,7 +103,6 @@ class Wall:
 
     def draw(self):
         self.rec = screen.blit(self.scaled_image, (self.x, self.y))
-
 
 class Chest:
     width = 30
@@ -129,25 +124,24 @@ class Chest:
 
     __repr__ = __str__
 
-
 class Player:
     width = 30
     height = 30
 
-    def __init__(self):
-        self.x = screen_width // 2 - self.width // 2
-        self.y = screen_height // 2 - self.height // 2
-        self.speed = 3
+    def __init__(self, name, x, y):
+        self.name = name
+        self.x = x
+        self.y = x
+        self.speed = 5
         self.last_pos = [(self.x, self.y)]
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def __str__(self):
-        return "player"
+        return self.name
 
     __repr__ = __str__
 
     def update_pose(self, objects):
-        background_image = pygame.image.load("main_backgrunn.jpg")
         new_background = False
         button = pygame.key.get_pressed()
         self.last_pos.append((self.x, self.y))
@@ -178,7 +172,6 @@ class Player:
                 if self.rec.colliderect(obj.rec):
                         print(self, "collided with", obj)
                         new_background = True
-                        return new_background
 
 
             else:
@@ -188,7 +181,6 @@ class Player:
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
-
 
 def has_collision(x, y, width, height, all_objects):
     for obj in all_objects:
@@ -206,7 +198,6 @@ def has_collision(x, y, width, height, all_objects):
     print("NO COLLISIOk")
     return False
 
-
 def find_available_x_y(width, height, all_objects):
     while True:
         x = randint(0, 500)
@@ -215,20 +206,29 @@ def find_available_x_y(width, height, all_objects):
             return x, y
 
 
-def create_world():
+
+def create_world(name: str):
+
     print("creating world")
-    player = Player()
-    all_objects = [player]
+    kart = open(name, "r")
+    all_objects = []
     enemies = []
     walls = []
     chests = []
     towers = []
-
-    kart = open("map", "r")
-    print("hello",kart)
+    print(kart)
     x = 0
     y = 0
     print(x, y)
+    player = None
+
+    if name.startswith("tower"):
+        background_image = pygame.image.load("bagrunn_tower.png")
+    else:
+        background_image = pygame.image.load("main_backgrunn.jpg")
+
+    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+
 
     for line in kart.readlines():
         y += 30
@@ -237,6 +237,9 @@ def create_world():
             x += 30
             if col == ".":
                 continue
+            elif col == "P":
+                player = Player("player" + str(x) + str(y), x, y)
+                all_objects.append(player)
             elif col == "X":
                 wall = Wall("wall " + str(x) + str(y), x, y)
                 walls.append(wall)
@@ -253,31 +256,29 @@ def create_world():
                 tower = Tower("tower " + str(x) + str(y), x, y)
                 towers.append(tower)
                 all_objects.append(tower)
-
-    return enemies, walls, chests, all_objects, player, towers, kart
+    if player is None:
+        raise RuntimeWarning("player must be in the map")
+    return enemies, walls, chests, all_objects, player, towers, kart, background_image
 
 
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
-    background_image = pygame.image.load("main_backgrunn.jpg")
     new_background = False
 
-    enemies, walls, chests, all_objects, player, towers, kart = create_world()
+    enemies, walls, chests, all_objects, player, towers, kart, background_image = create_world("world.map")
 
     crashable_objects = walls + chests + towers
 
-
-    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
-    screen.blit(background_image, (0, 0))
-
     running = True
     while running:
-        if new_background:
-            background_image = pygame.image.load("bagrunn_tower.png")
-            background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
+        if new_background:
+
+            enemies, walls, chests, all_objects, player, towers, kart, background_image= create_world("tower.map")
+            crashable_objects = walls + chests + towers
         screen.blit(background_image, (0, 0))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
