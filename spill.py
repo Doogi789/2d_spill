@@ -8,23 +8,29 @@ RED = (255, 0, 0)
 screen_height = 1000
 screen_width = 1000
 
+
 class Tower:
-    width = 60
-    height = 90
+    width = 30
+    height = 30
+
     def __init__(self, name, x, y):
         self.x = x
         self.y = y
-        self.rec = pygame.Rect( self.x, self.y,self.width, self.height)
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.name = name
-        self.image = pygame.image.load("tower.png")
-        self.scaled_image = pygame.transform.scale(self.image,(self.width, self.height))
+     #   self.image = pygame.image.load("tower.png")
+     #   self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
 
-    def  __str__(self):
+    def __str__(self):
         return self.name
+
     __repr__ = __str__
 
     def draw(self):
-        self.rec = screen.blit(self.scaled_image,(self.x, self.y))
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, BLUE, self.rec)
+
+
 
 class Enemy:
     width = 30
@@ -136,11 +142,13 @@ class Player:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def __str__(self):
-        return "Playmovement_enemyer"
+        return "player"
 
     __repr__ = __str__
 
     def update_pose(self, objects):
+        background_image = pygame.image.load("main_backgrunn.jpg")
+        new_background = False
         button = pygame.key.get_pressed()
         self.last_pos.append((self.x, self.y))
 
@@ -166,12 +174,21 @@ class Player:
                         self.x, self.y = self.last_pos[0]
                     print(self, "collided with ", obj)
 
+            elif isinstance(obj, Tower):
+                if self.rec.colliderect(obj.rec):
+                        print(self, "collided with", obj)
+                        new_background = True
+                        return new_background
+
+
             else:
                 print("problem!", obj)
+        return new_background
 
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
+
 
 def has_collision(x, y, width, height, all_objects):
     for obj in all_objects:
@@ -207,14 +224,13 @@ def create_world():
     chests = []
     towers = []
 
-    kart = open("spill.map", "r")
-    print(kart)
+    kart = open("map", "r")
+    print("hello",kart)
     x = 0
     y = 0
     print(x, y)
 
     for line in kart.readlines():
-        print(line)
         y += 30
         x = 0
         for col in line:
@@ -238,22 +254,29 @@ def create_world():
                 towers.append(tower)
                 all_objects.append(tower)
 
-    return enemies, walls, chests, all_objects, player, towers
+    return enemies, walls, chests, all_objects, player, towers, kart
 
 
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
-    background_image = pygame.image.load("backgrunn.jpg")
+    background_image = pygame.image.load("main_backgrunn.jpg")
+    new_background = False
+
+    enemies, walls, chests, all_objects, player, towers, kart = create_world()
+
+    crashable_objects = walls + chests + towers
+
+
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
-
-    enemies, walls, chests, all_objects, player, towers = create_world()
-
-    crashable_objects = walls + chests
-    print(type(crashable_objects))
+    screen.blit(background_image, (0, 0))
 
     running = True
     while running:
+        if new_background:
+            background_image = pygame.image.load("bagrunn_tower.png")
+            background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+
         screen.blit(background_image, (0, 0))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -269,8 +292,7 @@ if __name__ == "__main__":
         for tower in towers:
             tower.draw()
 
-        player.update_pose(crashable_objects)
-
+        new_background = player.update_pose(crashable_objects)
         player.draw()
 
         pygame.display.flip()
