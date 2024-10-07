@@ -1,6 +1,5 @@
 import pygame
 from random import randint
-
 from pygame.time import delay
 
 
@@ -55,11 +54,16 @@ class Enemy:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, WHITE, self.rec)
 
-    def movement_enemy(self, objects):
+    def movement_enemy(self, objects, p_x, p_y):
+        print(p_x, p_y, self.x, self.y)
         distance_x = self.target_x - self.x
         distance_y = self.target_y - self.y
+        distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
+        print(distance_player)
+        if abs(distance_player) < 80 + self.width:
+            print("pogo")
 
-        if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
+        elif abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
@@ -222,7 +226,7 @@ def create_world(name: str):
     player = None
 
     if name.startswith("tower"):
-        background_image = pygame.image.load("background.tower.png")
+        background_image = pygame.image.load("tower.background.png")
     else:
         background_image = pygame.image.load("main.background.jpg")
 
@@ -288,7 +292,7 @@ if __name__ == "__main__":
         for wall in walls:
             wall.draw()
         for enemy in enemies:
-            enemy.movement_enemy(crashable_objects)
+            enemy.movement_enemy(crashable_objects, player.x, player.y)
             enemy.draw()
         for tower in towers:
             tower.draw()
