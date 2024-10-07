@@ -1,6 +1,8 @@
 import pygame
 from random import randint
 
+from pygame.time import delay
+
 
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
@@ -43,7 +45,6 @@ class Enemy:
         self.speed = 2
         self.target_y = randint(0, screen_height - self.height)
         self.target_x = randint(0, screen_width - self.width)
-        print(self.x, self.y)
 
     def __str__(self):
         return self.name
@@ -55,7 +56,6 @@ class Enemy:
         pygame.draw.rect(screen, WHITE, self.rec)
 
     def movement_enemy(self, objects):
-        self.last_pos.append((self.x, self.y))
         distance_x = self.target_x - self.x
         distance_y = self.target_y - self.y
 
@@ -74,15 +74,26 @@ class Enemy:
             self.target_y = randint(0, screen_height - self.height)
             self.target_x = randint(0, screen_width - self.width)
 
+        self.rec = pygame.Rect(self.x, self.y,self.width, self.height)
+
         for obj in objects:
             if isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
-                    if len(self.last_pos) >= 3:
-                        self.x, self.y = self.last_pos[-3]
+                        dx =self.rec.centerx - obj.rec.centerx
+                        dy = self.rec.centery - obj.rec.centery
 
-                    else:
-                        self.x, self.y = self.last_pos[0]
-                    print(self, "collided with ", obj)
+                        if abs(dx) > abs(dy):
+                            if dx > 0:
+                                self.x = obj.rec.right
+                            else:
+                                self.x = obj.rec.left - self.rec.width
+                        else:
+                            if dy > 0:
+                               self.y = obj.rec.bottom
+                            else:
+                                self.y = obj.rec.top - self.rec.height
+
+                        print(self, "collided with ", obj)
 
 class Wall:
     width = 30
@@ -131,7 +142,7 @@ class Player:
     def __init__(self, name, x, y):
         self.name = name
         self.x = x
-        self.y = x
+        self.y = y
         self.speed = 5
         self.last_pos = [(self.x, self.y)]
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -155,6 +166,9 @@ class Player:
         if button[pygame.K_s]:
             self.y += self.speed
 
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+
+
         for obj in objects:
             if isinstance(obj, Chest):
                 if self.rec.colliderect(obj.rec):
@@ -162,50 +176,35 @@ class Player:
 
             elif isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
-                    if len(self.last_pos) >= 3:
-                        self.x, self.y = self.last_pos[-3]
+                    dx =self.rec.centerx - obj.rec.centerx
+                    dy = self.rec.centery - obj.rec.centery
+
+                    if abs(dx) > abs(dy):
+                        if dx > 0:
+                            self.x = obj.rec.right
+                        else:
+                            self.x = obj.rec.left - self.rec.width
+                        print(self, "collided with ", obj)
                     else:
-                        self.x, self.y = self.last_pos[0]
-                    print(self, "collided with ", obj)
+                        if dy > 0:
+                         self.y = obj.rec.bottom
+                        else:
+                            self.y = obj.rec.top - self.rec.height
+                        print(self, "collided with ", obj)
 
             elif isinstance(obj, Tower):
                 if self.rec.colliderect(obj.rec):
                         print(self, "collided with", obj)
                         new_background = True
 
-
             else:
                 print("problem!", obj)
+
         return new_background
 
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
-
-def has_collision(x, y, width, height, all_objects):
-    for obj in all_objects:
-        print(
-            x,
-            y,
-            obj.x,
-            obj.y,
-            type(obj),
-        )
-        if x - obj.width < obj.x < x + obj.width and y - obj.height < obj.y < y + obj.height:
-            print("collision")
-            return True
-        print("ok")
-    print("NO COLLISIOk")
-    return False
-
-def find_available_x_y(width, height, all_objects):
-    while True:
-        x = randint(0, 500)
-        y = randint(0, 500)
-        if not has_collision(x, y, width, height, all_objects):
-            return x, y
-
-
 
 def create_world(name: str):
 
@@ -223,9 +222,9 @@ def create_world(name: str):
     player = None
 
     if name.startswith("tower"):
-        background_image = pygame.image.load("bagrunn_tower.png")
+        background_image = pygame.image.load("background.tower.png")
     else:
-        background_image = pygame.image.load("main_backgrunn.jpg")
+        background_image = pygame.image.load("main.background.jpg")
 
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
@@ -258,6 +257,7 @@ def create_world(name: str):
                 all_objects.append(tower)
     if player is None:
         raise RuntimeWarning("player must be in the map")
+
     return enemies, walls, chests, all_objects, player, towers, kart, background_image
 
 
