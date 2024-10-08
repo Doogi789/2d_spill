@@ -55,15 +55,17 @@ class Enemy:
         pygame.draw.rect(screen, WHITE, self.rec)
 
     def movement_enemy(self, objects, p_x, p_y):
-        print(p_x, p_y, self.x, self.y)
-        distance_x = self.target_x - self.x
-        distance_y = self.target_y - self.y
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
-        print(distance_player)
+
         if abs(distance_player) < 80 + self.width:
             print("pogo")
+            self.target_x = p_x
+            self.target_y = p_y
 
-        elif abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
+        distance_x = self.target_x - self.x
+        distance_y = self.target_y - self.y
+
+        if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
@@ -81,7 +83,6 @@ class Enemy:
         self.rec = pygame.Rect(self.x, self.y,self.width, self.height)
 
         for obj in objects:
-            if isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
                         dx =self.rec.centerx - obj.rec.centerx
                         dy = self.rec.centery - obj.rec.centery
