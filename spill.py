@@ -1,3 +1,4 @@
+from types import ClassMethodDescriptorType
 import pygame
 from random import randint
 from pygame.time import delay
@@ -58,7 +59,6 @@ class Enemy:
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
 
         if abs(distance_player) < 80 + self.width:
-            print("pogo")
             self.target_x = p_x
             self.target_y = p_y
 
@@ -83,6 +83,7 @@ class Enemy:
         self.rec = pygame.Rect(self.x, self.y,self.width, self.height)
 
         for obj in objects:
+            if isinstance(obj, (Wall, Chest, Tower)):
                 if self.rec.colliderect(obj.rec):
                         dx =self.rec.centerx - obj.rec.centerx
                         dy = self.rec.centery - obj.rec.centery
@@ -98,7 +99,7 @@ class Enemy:
                             else:
                                 self.y = obj.rec.top - self.rec.height
 
-                        print(self, "collided with ", obj)
+                      #  print(self, "collided with ", obj)
 
 class Wall:
     width = 30
@@ -151,11 +152,42 @@ class Player:
         self.speed = 5
         self.last_pos = [(self.x, self.y)]
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.life = 100
+        self.colliding = []
 
     def __str__(self):
         return self.name
 
     __repr__ = __str__
+
+    def update_life(self, objects):
+
+        for obj in objects:
+            if isinstance(obj, Enemy):
+                if self.rec.colliderect(obj.rec):
+                   # print(self, "collided with", obj)
+
+                    if obj not in self.colliding:
+                        self.life = self.life - 10
+                        self.colliding.append(obj)
+                        print(self.life)
+
+                else:
+                    if obj in self.colliding:
+                        self.colliding.remove(obj)
+
+            if isinstance(obj, Chest):
+                if self.rec.colliderect(obj.rec):
+                   # print(self, "collided with ", obj)
+
+                    if obj not in self.colliding:
+                        self.life = self.life + 10
+                        self.colliding.append(obj)
+                        print(self.life)
+
+                else:
+                    if obj in self.colliding:
+                        self.colliding.remove(obj)
 
     def update_pose(self, objects):
         new_background = False
@@ -175,11 +207,8 @@ class Player:
 
 
         for obj in objects:
-            if isinstance(obj, Chest):
-                if self.rec.colliderect(obj.rec):
-                    print(self, "collided with ", obj)
 
-            elif isinstance(obj, Wall):
+            if isinstance(obj, Wall):
                 if self.rec.colliderect(obj.rec):
                     dx =self.rec.centerx - obj.rec.centerx
                     dy = self.rec.centery - obj.rec.centery
@@ -201,9 +230,6 @@ class Player:
                 if self.rec.colliderect(obj.rec):
                         print(self, "collided with", obj)
                         new_background = True
-
-            else:
-                print("problem!", obj)
 
         return new_background
 
@@ -273,8 +299,6 @@ if __name__ == "__main__":
 
     enemies, walls, chests, all_objects, player, towers, kart, background_image = create_world("world.map")
 
-    crashable_objects = walls + chests + towers
-
     running = True
     while running:
 
@@ -284,21 +308,26 @@ if __name__ == "__main__":
             crashable_objects = walls + chests + towers
         screen.blit(background_image, (0, 0))
 
+
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+
 
         for chest in chests:
             chest.draw()
         for wall in walls:
             wall.draw()
         for enemy in enemies:
-            enemy.movement_enemy(crashable_objects, player.x, player.y)
+            enemy.movement_enemy(all_objects, player.x, player.y)
             enemy.draw()
         for tower in towers:
             tower.draw()
 
-        new_background = player.update_pose(crashable_objects)
+        new_background = player.update_pose(all_objects)
+        player.update_life(all_objects)
         player.draw()
 
         pygame.display.flip()
