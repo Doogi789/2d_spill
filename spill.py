@@ -4,6 +4,7 @@ from random import randint
 from pygame.time import delay
 
 
+
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
@@ -188,7 +189,7 @@ class Player:
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
-
+        return self.life
     def update_pose(self, objects):
         new_background = False
         button = pygame.key.get_pressed()
@@ -218,17 +219,17 @@ class Player:
                             self.x = obj.rec.right
                         else:
                             self.x = obj.rec.left - self.rec.width
-                        print(self, "collided with ", obj)
+                      #  print(self, "collided with ", obj)
                     else:
                         if dy > 0:
                          self.y = obj.rec.bottom
                         else:
                             self.y = obj.rec.top - self.rec.height
-                        print(self, "collided with ", obj)
+                       # print(self, "collided with ", obj)
 
             elif isinstance(obj, Tower):
                 if self.rec.colliderect(obj.rec):
-                        print(self, "collided with", obj)
+                       # print(self, "collided with", obj)
                         new_background = True
 
         return new_background
@@ -295,6 +296,9 @@ def create_world(name: str):
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
+
+    tekst_size = pygame.font.Font(None, 60)
+
     new_background = False
 
     enemies, walls, chests, all_objects, player, towers, kart, background_image = create_world("world.map")
@@ -302,11 +306,15 @@ if __name__ == "__main__":
     running = True
     while running:
 
+        tekst = tekst_size.render(f"player, {player.life}", True, RED)
+        tekst_rect = tekst.get_rect(center = (120, 30))
+
         if new_background:
 
             enemies, walls, chests, all_objects, player, towers, kart, background_image= create_world("tower.map")
             crashable_objects = walls + chests + towers
         screen.blit(background_image, (0, 0))
+        screen.blit(tekst, tekst_rect )
 
 
 
@@ -327,7 +335,7 @@ if __name__ == "__main__":
             tower.draw()
 
         new_background = player.update_pose(all_objects)
-        player.update_life(all_objects)
+        life = player.update_life(all_objects)
         player.draw()
 
         pygame.display.flip()
