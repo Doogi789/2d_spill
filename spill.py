@@ -8,9 +8,90 @@ from pygame.time import delay
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
+BLACK = (0, 0, 0)
 screen_height = 1000
 screen_width = 1000
 
+
+def split_into_chunks(n, x):
+    # Full chunks
+    full_chunks = n // x
+
+    # Remainder after full chunks
+    remainder = n % x
+
+    # Create the list of chunks
+    chunks = [x] * full_chunks  # full chunks of size x
+
+    # Add the remainder chunk
+    if remainder > 0:
+        chunks.append(remainder)
+
+    # If you want to pad with 0s to match a fixed number of chunks (like in the example of 5)
+    while len(chunks) < 3:
+        chunks.append(0)
+
+    return chunks
+
+class Life:
+    width = 50
+    height = 50
+    def __init__(self, name, x, y):
+        self.x = x
+        self.y = y
+        self.life = 12
+        self.max_life = self.life
+        self.name = name
+        self.rec = (self.x , self.y, self.width, self.height)
+        self.hearts = [
+            pygame.image.load(f"heart_{i}.png") for i in range(5)
+        ]
+        self.dead: bool = False
+
+    def increase(self):
+        self.life += 1
+        self.life = min(self.max_life, self.life)
+
+    def decrease(self):
+        self.life -= 1
+        if life < 0:
+            self.dead  = True
+        return self.dead
+
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+    def draw(self):
+        counter = 0
+        for idx, heart_idx in enumerate(split_into_chunks(self.life, 4)):
+            image = self.hearts[heart_idx]
+            print("IDX", heart_idx, image)
+            scaled_image = pygame.transform.scale(image, (self.width, self.height) )
+
+            x = self.x + (self.width * idx)
+
+            self.rec = screen.blit(scaled_image, (x, self.y))
+
+class Nothing:
+    width = 30
+    height = 30
+    def __init__(self, name, x, y):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+    def draw(self):
+        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        pygame.draw.rect(screen, BLACK, self.rec)
 
 class Tower:
     width = 60
@@ -151,10 +232,9 @@ class Player:
         self.x = x
         self.y = y
         self.speed = 5
-        self.last_pos = [(self.x, self.y)]
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.life = 100
         self.colliding = []
+        self.hearts = Life("Life: " + self.name, 30, 30)
 
     def __str__(self):
         return self.name
@@ -169,9 +249,8 @@ class Player:
                    # print(self, "collided with", obj)
 
                     if obj not in self.colliding:
-                        self.life = self.life - 10
+                        self.hearts.decrease()
                         self.colliding.append(obj)
-                        print(self.life)
 
                 else:
                     if obj in self.colliding:
@@ -182,18 +261,17 @@ class Player:
                    # print(self, "collided with ", obj)
 
                     if obj not in self.colliding:
-                        self.life = self.life + 10
+                        self.hearts.increase()
                         self.colliding.append(obj)
-                        print(self.life)
 
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
-        return self.life
+        return self.hearts.life
+
     def update_pose(self, objects):
         new_background = False
         button = pygame.key.get_pressed()
-        self.last_pos.append((self.x, self.y))
 
         if button[pygame.K_a]:
             self.x -= self.speed
@@ -240,17 +318,15 @@ class Player:
 
 def create_world(name: str):
 
-    print("creating world")
     kart = open(name, "r")
     all_objects = []
     enemies = []
     walls = []
     chests = []
     towers = []
-    print(kart)
+    nothings = []
     x = 0
     y = 0
-    print(x, y)
     player = None
 
     if name.startswith("tower"):
@@ -260,7 +336,6 @@ def create_world(name: str):
 
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-
     for line in kart.readlines():
         y += 30
         x = 0
@@ -268,6 +343,10 @@ def create_world(name: str):
             x += 30
             if col == ".":
                 continue
+            elif col == "N":
+                nothing = Nothing("nothing" + str(x) + str(y), x, y)
+                nothings.append(nothing)
+                all_objects.append(nothing)
             elif col == "P":
                 player = Player("player" + str(x) + str(y), x, y)
                 all_objects.append(player)
@@ -287,10 +366,12 @@ def create_world(name: str):
                 tower = Tower("tower " + str(x) + str(y), x, y)
                 towers.append(tower)
                 all_objects.append(tower)
+
     if player is None:
         raise RuntimeWarning("player must be in the map")
 
-    return enemies, walls, chests, all_objects, player, towers, kart, background_image
+    return enemies, walls, chests, all_objects, player, towers, kart, background_image, nothings
+
 
 
 if __name__ == "__main__":
@@ -301,22 +382,26 @@ if __name__ == "__main__":
 
     new_background = False
 
-    enemies, walls, chests, all_objects, player, towers, kart, background_image = create_world("world.map")
+    enemies, walls, chests, all_objects, player, towers, kart, background_image, nothings = create_world("world.map")
 
     running = True
     while running:
 
-        tekst = tekst_size.render(f"player, {player.life}", True, RED)
-        tekst_rect = tekst.get_rect(center = (120, 30))
-
+        #tekst = tekst_size.render(f"player, {player.hearts.life}", True, RED)
+        #tekst_rect = tekst.get_rect(center = (240, 30))
+        screen.blit(background_image, (0, 0))
         if new_background:
 
-            enemies, walls, chests, all_objects, player, towers, kart, background_image= create_world("tower.map")
+            enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("tower.map")
             crashable_objects = walls + chests + towers
-        screen.blit(background_image, (0, 0))
-        screen.blit(tekst, tekst_rect )
-
-
+       # screen.blit(background_image, (0, 0))
+       # screen.blit(tekst, tekst_rect )
+        if player.hearts.dead:
+            tekst = tekst_size.render(f"GAME OVER", True, RED)
+            tekst_rect = tekst.get_rect(center = (240, 30))
+            screen.blit(tekst, tekst_rect )
+            enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("world.map")
+            player.hearts.dead = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -333,10 +418,14 @@ if __name__ == "__main__":
             enemy.draw()
         for tower in towers:
             tower.draw()
+        for nothing in nothings:
+            nothing.draw()
+
 
         new_background = player.update_pose(all_objects)
         life = player.update_life(all_objects)
         player.draw()
+        player.hearts.draw()
 
         pygame.display.flip()
         pygame.time.Clock().tick(20)
