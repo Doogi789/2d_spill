@@ -68,7 +68,7 @@ class Life:
         counter = 0
         for idx, heart_idx in enumerate(split_into_chunks(self.life, 4)):
             image = self.hearts[heart_idx]
-            print("IDX", heart_idx, image)
+
             scaled_image = pygame.transform.scale(image, (self.width, self.height) )
 
             x = self.x + (self.width * idx)
