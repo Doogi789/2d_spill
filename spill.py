@@ -1,7 +1,6 @@
-from types import ClassMethodDescriptorType
 import pygame
 from random import randint
-from pygame.time import delay
+from enum import Enum, auto
 
 
 
@@ -44,7 +43,7 @@ class Life:
         self.name = name
         self.rec = (self.x , self.y, self.width, self.height)
         self.hearts = [
-            pygame.image.load(f"heart_{i}.png") for i in range(5)
+            pygame.image.load(f"heart_{i}.png").convert_alpha() for i in range(5)
         ]
         self.dead: bool = False
 
@@ -65,7 +64,6 @@ class Life:
     __repr__ = __str__
 
     def draw(self):
-        counter = 0
         for idx, heart_idx in enumerate(split_into_chunks(self.life, 4)):
             image = self.hearts[heart_idx]
 
@@ -119,7 +117,6 @@ class Enemy:
 
     def __init__(self, name, x, y):
         self.name = name
-
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -198,6 +195,7 @@ class Wall:
     def __str__(self):
         return self.name
 
+
     __repr__ = __str__
 
     def draw(self):
@@ -212,8 +210,8 @@ class Chest:
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.image = pygame.image.load("chest.png")
-        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
+        image = pygame.image.load("chest.png")
+        self.scaled_image = pygame.transform.scale(image, (self.width, self.height))
 
     def draw(self):
         self.rec = screen.blit(self.scaled_image, (self.x, self.y))
@@ -222,6 +220,10 @@ class Chest:
         return self.name
 
     __repr__ = __str__
+
+class Direction(Enum):
+    XPLUS = auto()
+    XMINUS = auto()
 
 class Player:
     width = 30
@@ -235,6 +237,13 @@ class Player:
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.colliding = []
         self.hearts = Life("Life: " + self.name, 30, 30)
+        self.keydown = False
+        #attack variabler
+        self.direction = "x+"
+        self.sword_image = pygame.image.load("sword_x+.png")
+
+
+        self.show_sword = False
 
     def __str__(self):
         return self.name
@@ -267,6 +276,7 @@ class Player:
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
+
         return self.hearts.life
 
     def update_pose(self, objects):
@@ -275,12 +285,22 @@ class Player:
 
         if button[pygame.K_a]:
             self.x -= self.speed
+            self.direction = "x-"
         if button[pygame.K_d]:
             self.x += self.speed
+            self.direction = "x+"
         if button[pygame.K_w]:
             self.y -= self.speed
+            self.direction = "y-"
         if button[pygame.K_s]:
             self.y += self.speed
+            self.direction = "y+"
+        if button[pygame.K_SPACE]:
+            self.show_sword = True
+            print("pogo")
+
+
+
 
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
@@ -315,6 +335,28 @@ class Player:
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, RED, self.rec)
+
+        if self.show_sword:
+            print("tegner")
+            self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
+            self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
+            if self.direction == "x+":
+                self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
+                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+            if self.direction == "x-":
+                self.sword_rec = self.sword_image.get_rect(midright = self.rec.midright)
+                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+            if self.direction == "y+":
+                self.sword_rec = self.sword_image.get_rect(midtop = self.rec.midtop)
+                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+            if self.direction == "y-":
+                self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
+                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+
+
+
+
+
 
 def create_world(name: str):
 
@@ -373,7 +415,6 @@ def create_world(name: str):
     return enemies, walls, chests, all_objects, player, towers, kart, background_image, nothings
 
 
-
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((screen_width, screen_height))
@@ -387,17 +428,20 @@ if __name__ == "__main__":
     running = True
     while running:
 
-        #tekst = tekst_size.render(f"player, {player.hearts.life}", True, RED)
-        #tekst_rect = tekst.get_rect(center = (240, 30))
+        tekst = tekst_size.render(f"player, {player.direction}", True, RED)
+        tekst_rect = tekst.get_rect(center = (240, 30))
         screen.blit(background_image, (0, 0))
+
         if new_background:
 
             enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("tower.map")
             crashable_objects = walls + chests + towers
-       # screen.blit(background_image, (0, 0))
-       # screen.blit(tekst, tekst_rect )
+
+        screen.blit(background_image, (0, 0))
+        screen.blit(tekst, tekst_rect )
+
         if player.hearts.dead:
-            tekst = tekst_size.render(f"GAME OVER", True, RED)
+            tekst = tekst_size.render("GAME OVER", True, RED)
             tekst_rect = tekst.get_rect(center = (240, 30))
             screen.blit(tekst, tekst_rect )
             enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("world.map")
@@ -428,4 +472,4 @@ if __name__ == "__main__":
         player.hearts.draw()
 
         pygame.display.flip()
-        pygame.time.Clock().tick(20)
+        pygame.time.Clock().tick(60)
