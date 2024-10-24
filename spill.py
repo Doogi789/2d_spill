@@ -1,3 +1,4 @@
+from numpy import False_
 import pygame
 from random import randint
 from enum import Enum, auto
@@ -32,7 +33,7 @@ def split_into_chunks(n, x):
 
     return chunks
 
-class Life:
+class Player_Life:
     width = 50
     height = 50
     def __init__(self, name, x, y):
@@ -124,6 +125,7 @@ class Enemy:
         self.speed = 2
         self.target_y = randint(0, screen_height - self.height)
         self.target_x = randint(0, screen_width - self.width)
+        self.life = 10
 
     def __str__(self):
         return self.name
@@ -131,8 +133,8 @@ class Enemy:
     __repr__ = __str__
 
     def draw(self):
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, WHITE, self.rec)
+            self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+            pygame.draw.rect(screen, WHITE, self.rec)
 
     def movement_enemy(self, objects, p_x, p_y):
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
@@ -177,6 +179,12 @@ class Enemy:
                                self.y = obj.rec.bottom
                             else:
                                 self.y = obj.rec.top - self.rec.height
+
+            if isinstance(obj, (Player)):
+                if self.rec.colliderect(obj.sword_rec):
+                    print("pogo")
+                    self.life -= 10
+
 
                       #  print(self, "collided with ", obj)
 
@@ -236,10 +244,13 @@ class Player:
         self.speed = 5
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.colliding = []
-        self.hearts = Life("Life: " + self.name, 30, 30)
+        self.hearts = Player_Life("Life: " + self.name, 30, 30)
         self.keydown = False
         #attack variabler
+
         self.direction = "x+"
+        self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
+        self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
         self.sword_image = pygame.image.load("sword_x+.png")
 
 
@@ -353,11 +364,6 @@ class Player:
                 self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
 
-
-
-
-
-
 def create_world(name: str):
 
     kart = open(name, "r")
@@ -391,6 +397,7 @@ def create_world(name: str):
                 all_objects.append(nothing)
             elif col == "P":
                 player = Player("player" + str(x) + str(y), x, y)
+                all_objects.append(player.sword_rec)
                 all_objects.append(player)
             elif col == "X":
                 wall = Wall("wall " + str(x) + str(y), x, y)
@@ -457,6 +464,7 @@ if __name__ == "__main__":
             chest.draw()
         for wall in walls:
             wall.draw()
+        enemies = [enemy for enemy in enemies if enemy.life > 0]
         for enemy in enemies:
             enemy.movement_enemy(all_objects, player.x, player.y)
             enemy.draw()
