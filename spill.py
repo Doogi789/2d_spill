@@ -1,4 +1,4 @@
-from numpy import False_
+
 import pygame
 from random import randint
 from enum import Enum, auto
@@ -308,7 +308,6 @@ class Player:
             self.direction = "y+"
         if button[pygame.K_SPACE]:
             self.show_sword = True
-            print("pogo")
 
 
 
@@ -348,7 +347,6 @@ class Player:
         pygame.draw.rect(screen, RED, self.rec)
 
         if self.show_sword:
-            print("tegner")
             self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
             self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
             if self.direction == "x+":
@@ -465,6 +463,11 @@ if __name__ == "__main__":
         for wall in walls:
             wall.draw()
         enemies = [enemy for enemy in enemies if enemy.life > 0]
+        for obj in all_objects[:]:
+            if isinstance(obj, Enemy):
+                if obj.life <= 0:
+                    all_objects.remove(obj)
+
         for enemy in enemies:
             enemy.movement_enemy(all_objects, player.x, player.y)
             enemy.draw()
@@ -472,7 +475,6 @@ if __name__ == "__main__":
             tower.draw()
         for nothing in nothings:
             nothing.draw()
-
 
         new_background = player.update_pose(all_objects)
         life = player.update_life(all_objects)
