@@ -252,7 +252,7 @@ class Player:
         self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
         self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
         self.sword_image = pygame.image.load("sword_x+.png")
-
+        self.timer = 0
 
         self.show_sword = False
 
@@ -308,7 +308,7 @@ class Player:
             self.direction = "y+"
         if button[pygame.K_SPACE]:
             self.show_sword = True
-
+            self.timer = 0
 
 
 
@@ -347,20 +347,24 @@ class Player:
         pygame.draw.rect(screen, RED, self.rec)
 
         if self.show_sword:
+            self.timer += 1
             self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
             self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
             if self.direction == "x+":
                 self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
-            if self.direction == "x-":
+            elif self.direction == "x-":
                 self.sword_rec = self.sword_image.get_rect(midright = self.rec.midright)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
-            if self.direction == "y+":
+            elif self.direction == "y+":
                 self.sword_rec = self.sword_image.get_rect(midtop = self.rec.midtop)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
-            if self.direction == "y-":
+            elif self.direction == "y-":
                 self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+
+            if self.timer == 10:
+                self.show_sword = False
 
 def create_world(name: str):
 
@@ -433,7 +437,7 @@ if __name__ == "__main__":
     running = True
     while running:
 
-        tekst = tekst_size.render(f"player, {player.direction}", True, RED)
+        tekst = tekst_size.render(f"player, {player.timer}", True, RED)
         tekst_rect = tekst.get_rect(center = (240, 30))
         screen.blit(background_image, (0, 0))
 
