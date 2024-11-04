@@ -3,6 +3,8 @@ import pygame
 from random import randint
 from enum import Enum, auto
 
+from pygame.constants import KEYDOWN
+
 
 
 WHITE = (255, 255, 255)
@@ -252,9 +254,9 @@ class Player:
         self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
         self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
         self.sword_image = pygame.image.load("sword_x+.png")
-        self.timer = 0
-
+        self.sword_timer = 0
         self.show_sword = False
+        self.can_use_sword = False
 
     def __str__(self):
         return self.name
@@ -306,9 +308,13 @@ class Player:
         if button[pygame.K_s]:
             self.y += self.speed
             self.direction = "y+"
-        if button[pygame.K_SPACE]:
-            self.show_sword = True
-            self.timer = 0
+
+        if not button[pygame.K_SPACE]:
+            self.can_use_sword = True
+        if button[pygame.K_SPACE] and self.can_use_sword:
+                self.show_sword = True
+                self.sword_timer = 0
+                self.can_use_sword = False
 
 
 
@@ -347,7 +353,7 @@ class Player:
         pygame.draw.rect(screen, RED, self.rec)
 
         if self.show_sword:
-            self.timer += 1
+            self.sword_timer += 1
             self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
             self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
             if self.direction == "x+":
@@ -363,7 +369,7 @@ class Player:
                 self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
                 self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
 
-            if self.timer == 10:
+            if self.sword_timer == 10:
                 self.show_sword = False
 
 def create_world(name: str):
@@ -437,7 +443,7 @@ if __name__ == "__main__":
     running = True
     while running:
 
-        tekst = tekst_size.render(f"player, {player.timer}", True, RED)
+        tekst = tekst_size.render(f"player, {player.sword_timer}", True, RED)
         tekst_rect = tekst.get_rect(center = (240, 30))
         screen.blit(background_image, (0, 0))
 
@@ -459,6 +465,9 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                print("KEYDOWN",event)
+
 
 
 
