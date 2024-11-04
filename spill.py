@@ -38,7 +38,8 @@ def split_into_chunks(n, x):
 class Player_Life:
     width = 50
     height = 50
-    def __init__(self, name, x, y):
+    def __init__(self,screen, name, x, y):
+        self.screen = screen
         self.x = x
         self.y = y
         self.life = 12
@@ -56,7 +57,7 @@ class Player_Life:
 
     def decrease(self):
         self.life -= 1
-        if life < 0:
+        if self.life < 0:
             self.dead  = True
         return self.dead
 
@@ -74,12 +75,13 @@ class Player_Life:
 
             x = self.x + (self.width * idx)
 
-            self.rec = screen.blit(scaled_image, (x, self.y))
+            self.rec = self.screen.blit(scaled_image, (x, self.y))
 
 class Nothing:
     width = 30
     height = 30
-    def __init__(self, name, x, y):
+    def __init__(self,screen, name, x, y):
+        self.screen = screen
         self.name = name
         self.x = x
         self.y = y
@@ -92,13 +94,14 @@ class Nothing:
 
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, BLACK, self.rec)
+        pygame.draw.rect(self.screen, BLACK, self.rec)
 
 class Tower:
     width = 60
     height = 90
 
-    def __init__(self, name, x, y):
+    def __init__(self,screen, name, x, y):
+        self.screen = screen
         self.x = x
         self.y = y
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -112,13 +115,14 @@ class Tower:
     __repr__ = __str__
 
     def draw(self):
-        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
+        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
 
 class Enemy:
     width = 30
     height = 30
 
-    def __init__(self, name, x, y):
+    def __init__(self,screen, name, x, y):
+        self.screen = screen
         self.name = name
         self.x = x
         self.y = y
@@ -136,7 +140,7 @@ class Enemy:
 
     def draw(self):
             self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-            pygame.draw.rect(screen, WHITE, self.rec)
+            pygame.draw.rect(self.screen, WHITE, self.rec)
 
     def movement_enemy(self, objects, p_x, p_y):
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
@@ -194,7 +198,8 @@ class Wall:
     width = 30
     height = 30
 
-    def __init__(self, name, x, y):
+    def __init__(self, screen, name, x, y):
+        self.screen = screen
         self.name = name
         self.x = x
         self.y = y
@@ -209,13 +214,14 @@ class Wall:
     __repr__ = __str__
 
     def draw(self):
-        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
+        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
 
 class Chest:
     width = 30
     height = 30
 
-    def __init__(self, name, x, y):
+    def __init__(self, screen, name, x, y):
+        self.screen = screen
         self.name = name
         self.x = x
         self.y = y
@@ -224,7 +230,7 @@ class Chest:
         self.scaled_image = pygame.transform.scale(image, (self.width, self.height))
 
     def draw(self):
-        self.rec = screen.blit(self.scaled_image, (self.x, self.y))
+        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
 
     def __str__(self):
         return self.name
@@ -239,14 +245,15 @@ class Player:
     width = 30
     height = 30
 
-    def __init__(self, name, x, y):
+    def __init__(self,screen, name, x, y):
+        self.screen = screen
         self.name = name
         self.x = x
         self.y = y
         self.speed = 5
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.colliding = []
-        self.hearts = Player_Life("Life: " + self.name, 30, 30)
+        self.hearts = Player_Life(self.screen,"Life: " + self.name, 30, 30)
         self.keydown = False
         #attack variabler
 
@@ -323,7 +330,7 @@ class Player:
 
         for obj in objects:
 
-            if isinstance(obj, Wall):
+            if isinstance(obj, (Wall,Nothing)):
                 if self.rec.colliderect(obj.rec):
                     dx =self.rec.centerx - obj.rec.centerx
                     dy = self.rec.centery - obj.rec.centery
@@ -350,7 +357,7 @@ class Player:
 
     def draw(self):
         self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, RED, self.rec)
+        pygame.draw.rect(self.screen, RED, self.rec)
 
         if self.show_sword:
             self.sword_timer += 1
@@ -358,141 +365,148 @@ class Player:
             self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
             if self.direction == "x+":
                 self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
-                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
             elif self.direction == "x-":
                 self.sword_rec = self.sword_image.get_rect(midright = self.rec.midright)
-                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
             elif self.direction == "y+":
                 self.sword_rec = self.sword_image.get_rect(midtop = self.rec.midtop)
-                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
             elif self.direction == "y-":
                 self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
-                self.sword_rec = screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
 
             if self.sword_timer == 10:
                 self.show_sword = False
 
-def create_world(name: str):
 
-    kart = open(name, "r")
-    all_objects = []
-    enemies = []
-    walls = []
-    chests = []
-    towers = []
-    nothings = []
-    x = 0
-    y = 0
-    player = None
 
-    if name.startswith("tower"):
-        background_image = pygame.image.load("tower.background.png")
-    else:
-        background_image = pygame.image.load("main.background.jpg")
 
-    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+class Game():
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((screen_width, screen_height))
+        self.create_world("world.map")
+        self.tekst_size = pygame.font.Font(None, 60)
 
-    for line in kart.readlines():
-        y += 30
+        self.new_background = False
+
+    def create_world(self,name: str):
+
+        kart = open(name, "r")
+        self.all_objects = []
+        self.enemies = []
+        self.walls = []
+        self.chests = []
+        self.towers = []
+        self.nothings = []
         x = 0
-        for col in line:
-            x += 30
-            if col == ".":
-                continue
-            elif col == "N":
-                nothing = Nothing("nothing" + str(x) + str(y), x, y)
-                nothings.append(nothing)
-                all_objects.append(nothing)
-            elif col == "P":
-                player = Player("player" + str(x) + str(y), x, y)
-                all_objects.append(player.sword_rec)
-                all_objects.append(player)
-            elif col == "X":
-                wall = Wall("wall " + str(x) + str(y), x, y)
-                walls.append(wall)
-                all_objects.append(wall)
-            elif col == "C":
-                chest = Chest("chest " + str(x) + str(y), x, y)
-                chests.append(chest)
-                all_objects.append(chest)
-            elif col == "E":
-                enemy = Enemy("enemy " + str(x) + str(y), x, y)
-                enemies.append(enemy)
-                all_objects.append(enemy)
-            elif col == "T":
-                tower = Tower("tower " + str(x) + str(y), x, y)
-                towers.append(tower)
-                all_objects.append(tower)
+        y = 0
+        self.player = None
 
-    if player is None:
-        raise RuntimeWarning("player must be in the map")
 
-    return enemies, walls, chests, all_objects, player, towers, kart, background_image, nothings
+        if name.startswith("tower"):
+            self.background_image = pygame.image.load("tower.background.png")
+        else:
+            self.background_image = pygame.image.load("main.background.jpg")
+
+        self.background_image = pygame.transform.scale(self.background_image, (screen_width, screen_height))
+
+        for line in kart.readlines():
+            y += 30
+            x = 0
+            for col in line:
+                x += 30
+                if col == ".":
+                    continue
+                elif col == "N":
+                    nothing = Nothing(self.screen,"nothing" + str(x) + str(y), x, y)
+                    self.nothings.append(nothing)
+                    self.all_objects.append(nothing)
+                elif col == "P":
+                    self.player = Player(self.screen,"player" + str(x) + str(y), x, y)
+                    self.all_objects.append(self.player.sword_rec)
+                    self.all_objects.append(self.player)
+                elif col == "X":
+                    wall = Wall(self.screen,"wall " + str(x) + str(y), x, y)
+                    self.walls.append(wall)
+                    self.all_objects.append(wall)
+                elif col == "C":
+                    chest = Chest(self.screen,"chest " + str(x) + str(y), x, y)
+                    self.chests.append(chest)
+                    self.all_objects.append(chest)
+                elif col == "E":
+                    enemy = Enemy(self.screen,"enemy " + str(x) + str(y), x, y)
+                    self.enemies.append(enemy)
+                    self.all_objects.append(enemy)
+                elif col == "T":
+                    tower = Tower(self.screen,"tower " + str(x) + str(y), x, y)
+                    self.towers.append(tower)
+                    self.all_objects.append(tower)
+
+
+        if self.player is None:
+            raise RuntimeWarning("player must be in the map")
+
+        self.crashable_objects = self.walls + self.chests + self.towers + self.nothings
+
+
+    def step(self):
+        self.screen.blit(self.background_image, (0, 0))
+        tekst = self.tekst_size.render(f"player, {self.player.sword_timer}", True, RED)
+        tekst_rect = tekst.get_rect(center = (240, 30))
+        self.screen.blit(tekst, tekst_rect )
+
+        if self.new_background:
+            self.create_world("tower.map")
+
+        if self.player.hearts.dead:
+            tekst = self.tekst_size.render("GAME OVER", True, RED)
+            tekst_rect = tekst.get_rect(center = (240, 30))
+            self.screen.blit(tekst, tekst_rect )
+            self.create_world("world.map")
+            self.player.hearts.dead = False
+
+
+
+        for chest in self.chests:
+            chest.draw()
+        for wall in self.walls:
+            wall.draw()
+        enemies = [enemy for enemy in self.enemies if enemy.life > 0]
+        for obj in self.all_objects[:]:
+            if isinstance(obj, Enemy):
+                if obj.life <= 0:
+                    self.all_objects.remove(obj)
+
+        for enemy in enemies:
+            enemy.movement_enemy(self.all_objects, self.player.x, self.player.y)
+            enemy.draw()
+        for tower in self.towers:
+            tower.draw()
+        for nothing in self.nothings:
+            nothing.draw()
+
+        self.new_background = self.player.update_pose(self.all_objects)
+        life = self.player.update_life(self.all_objects)
+        self.player.draw()
+        self.player.hearts.draw()
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
 
 
 if __name__ == "__main__":
-    pygame.init()
-    screen = pygame.display.set_mode((screen_width, screen_height))
 
-    tekst_size = pygame.font.Font(None, 60)
-
-    new_background = False
-
-    enemies, walls, chests, all_objects, player, towers, kart, background_image, nothings = create_world("world.map")
+    game = Game()
 
     running = True
+
     while running:
-
-        tekst = tekst_size.render(f"player, {player.sword_timer}", True, RED)
-        tekst_rect = tekst.get_rect(center = (240, 30))
-        screen.blit(background_image, (0, 0))
-
-        if new_background:
-
-            enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("tower.map")
-            crashable_objects = walls + chests + towers
-
-        screen.blit(background_image, (0, 0))
-        screen.blit(tekst, tekst_rect )
-
-        if player.hearts.dead:
-            tekst = tekst_size.render("GAME OVER", True, RED)
-            tekst_rect = tekst.get_rect(center = (240, 30))
-            screen.blit(tekst, tekst_rect )
-            enemies, walls, chests, all_objects, player, towers, kart, background_image, nonthings = create_world("world.map")
-            player.hearts.dead = False
+        game.step()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN:
-                print("KEYDOWN",event)
-
-
-
-
-        for chest in chests:
-            chest.draw()
-        for wall in walls:
-            wall.draw()
-        enemies = [enemy for enemy in enemies if enemy.life > 0]
-        for obj in all_objects[:]:
-            if isinstance(obj, Enemy):
-                if obj.life <= 0:
-                    all_objects.remove(obj)
-
-        for enemy in enemies:
-            enemy.movement_enemy(all_objects, player.x, player.y)
-            enemy.draw()
-        for tower in towers:
-            tower.draw()
-        for nothing in nothings:
-            nothing.draw()
-
-        new_background = player.update_pose(all_objects)
-        life = player.update_life(all_objects)
-        player.draw()
-        player.hearts.draw()
-
-        pygame.display.flip()
-        pygame.time.Clock().tick(60)
+            #   if event.type == pygame.KEYDOWN:
+                #   print("KEYDOWN",event)
