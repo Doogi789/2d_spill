@@ -393,6 +393,7 @@ class Game:
         self.tekst_size = pygame.font.Font(None, 60)
         self.new_background = False
 
+
     def create_world(self,name: str):
 
         kart = open(name, "r")
