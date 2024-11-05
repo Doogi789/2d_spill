@@ -3,7 +3,6 @@ import pygame
 from random import randint
 from enum import Enum, auto
 
-from pygame.constants import KEYDOWN
 
 
 
@@ -34,6 +33,170 @@ def split_into_chunks(n, x):
         chunks.append(0)
 
     return chunks
+
+
+
+class Nothing(pygame.sprite.Sprite):
+    width = 30
+    height = 30
+    def __init__(self,screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.name = name
+        self.x = x
+        self.y = y
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill(BLACK)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x,y)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+class Tower(pygame.sprite.Sprite):
+    width = 60
+    height = 90
+
+    def __init__(self,screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.name = name
+        self.original_image = pygame.image.load("tower.png")
+        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x,y)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+class Enemy (pygame.sprite.Sprite):
+    width = 30
+    height = 30
+
+    def __init__(self,screen, name, x, y):
+        super().__init__()
+        #variabler som er hentet
+        self.name = name
+        self.x = x
+        self.y = y
+        self.screen = screen
+        #variabler for å tegne
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill((WHITE))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x,y)
+        #variabler får å bevege
+        self.speed = 2
+        self.target_y = randint(0, screen_height - self.height)
+        self.target_x = randint(0, screen_width - self.width)
+        self.life = 10
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+
+    def update(self, objects, p_x, p_y):
+        distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
+
+        if abs(distance_player) < 80 + self.width:
+            self.target_x = p_x
+            self.target_y = p_y
+
+        distance_x = self.target_x - self.x
+        distance_y = self.target_y - self.y
+
+        if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
+            if abs(distance_x) >= abs(distance_y):
+                if distance_x > 0:
+                    self.x += self.speed
+                else:
+                    self.x -= self.speed
+            else:
+                if distance_y > 0:
+                    self.y += self.speed
+                else:
+                    self.y -= self.speed
+        else:
+            self.target_y = randint(0, screen_height - self.height)
+            self.target_x = randint(0, screen_width - self.width)
+
+        self.rect = pygame.Rect(self.x, self.y,self.width, self.height)
+
+        for obj in objects:
+            if isinstance(obj, (Wall, Chest, Tower)):
+                if self.rect.colliderect(obj.rect):
+                        dx =self.rect.centerx - obj.rect.centerx
+                        dy = self.rect.centery - obj.rect.centery
+
+                        if abs(dx) > abs(dy):
+                            if dx > 0:
+                                self.x = obj.rect.right
+                            else:
+                                self.x = obj.rect.left - self.rect.width
+                        else:
+                            if dy > 0:
+                               self.y = obj.rect.bottom
+                            else:
+                                self.y = obj.rect.top - self.rect.height
+
+            if isinstance(obj, (Player)):
+                if self.rect.colliderect(obj.sword_rect):
+                    self.life -= 10
+
+
+                      #  print(self, "collided with ", obj)
+
+class Wall(pygame.sprite.Sprite):
+    width = 30
+    height = 30
+
+    def __init__(self, screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.name = name
+        self.x = x
+        self.y = y
+        self.original_image = pygame.image.load("wall.png")
+        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x,y)
+
+    def __str__(self):
+        return self.name
+
+
+    __repr__ = __str__
+
+class Chest(pygame.sprite.Sprite):
+    width = 30
+    height = 30
+
+    def __init__(self, screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.name = name
+        self.x = x
+        self.y = y
+        self.original_image = pygame.image.load("chest.png")
+        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+class Direction(Enum):
+    XPLUS = auto()
+    XMINUS = auto()
 
 class Player_Life:
     width = 50
@@ -77,193 +240,37 @@ class Player_Life:
 
             self.rec = self.screen.blit(scaled_image, (x, self.y))
 
-class Nothing:
+class Player(pygame.sprite.Sprite):
     width = 30
     height = 30
-    def __init__(self,screen, name, x, y):
-        self.screen = screen
-        self.name = name
-        self.x = x
-        self.y = y
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
 
-    def __str__(self):
-        return self.name
 
-    __repr__ = __str__
-
-    def draw(self):
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(self.screen, BLACK, self.rec)
-
-class Tower:
-    width = 60
-    height = 90
 
     def __init__(self,screen, name, x, y):
-        self.screen = screen
-        self.x = x
-        self.y = y
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.name = name
-        self.image = pygame.image.load("tower.png")
-        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
-
-    def __str__(self):
-        return self.name
-
-    __repr__ = __str__
-
-    def draw(self):
-        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
-
-class Enemy:
-    width = 30
-    height = 30
-
-    def __init__(self,screen, name, x, y):
-        self.screen = screen
-        self.name = name
-        self.x = x
-        self.y = y
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.last_pos = [(self.x, self.y)]
-        self.speed = 2
-        self.target_y = randint(0, screen_height - self.height)
-        self.target_x = randint(0, screen_width - self.width)
-        self.life = 10
-
-    def __str__(self):
-        return self.name
-
-    __repr__ = __str__
-
-    def draw(self):
-            self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-            pygame.draw.rect(self.screen, WHITE, self.rec)
-
-    def movement_enemy(self, objects, p_x, p_y):
-        distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
-
-        if abs(distance_player) < 80 + self.width:
-            self.target_x = p_x
-            self.target_y = p_y
-
-        distance_x = self.target_x - self.x
-        distance_y = self.target_y - self.y
-
-        if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
-            if abs(distance_x) >= abs(distance_y):
-                if distance_x > 0:
-                    self.x += self.speed
-                else:
-                    self.x -= self.speed
-            else:
-                if distance_y > 0:
-                    self.y += self.speed
-                else:
-                    self.y -= self.speed
-        else:
-            self.target_y = randint(0, screen_height - self.height)
-            self.target_x = randint(0, screen_width - self.width)
-
-        self.rec = pygame.Rect(self.x, self.y,self.width, self.height)
-
-        for obj in objects:
-            if isinstance(obj, (Wall, Chest, Tower)):
-                if self.rec.colliderect(obj.rec):
-                        dx =self.rec.centerx - obj.rec.centerx
-                        dy = self.rec.centery - obj.rec.centery
-
-                        if abs(dx) > abs(dy):
-                            if dx > 0:
-                                self.x = obj.rec.right
-                            else:
-                                self.x = obj.rec.left - self.rec.width
-                        else:
-                            if dy > 0:
-                               self.y = obj.rec.bottom
-                            else:
-                                self.y = obj.rec.top - self.rec.height
-
-            if isinstance(obj, (Player)):
-                if self.rec.colliderect(obj.sword_rec):
-                    print("pogo")
-                    self.life -= 10
-
-
-                      #  print(self, "collided with ", obj)
-
-class Wall:
-    width = 30
-    height = 30
-
-    def __init__(self, screen, name, x, y):
-        self.screen = screen
-        self.name = name
-        self.x = x
-        self.y = y
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.image = pygame.image.load("wall.png")
-        self.scaled_image = pygame.transform.scale(self.image, (self.width, self.height))
-
-    def __str__(self):
-        return self.name
-
-
-    __repr__ = __str__
-
-    def draw(self):
-        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
-
-class Chest:
-    width = 30
-    height = 30
-
-    def __init__(self, screen, name, x, y):
-        self.screen = screen
-        self.name = name
-        self.x = x
-        self.y = y
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        image = pygame.image.load("chest.png")
-        self.scaled_image = pygame.transform.scale(image, (self.width, self.height))
-
-    def draw(self):
-        self.rec = self.screen.blit(self.scaled_image, (self.x, self.y))
-
-    def __str__(self):
-        return self.name
-
-    __repr__ = __str__
-
-class Direction(Enum):
-    XPLUS = auto()
-    XMINUS = auto()
-
-class Player:
-    width = 30
-    height = 30
-
-    def __init__(self,screen, name, x, y):
+        super().__init__()
         self.screen = screen
         self.name = name
         self.x = x
         self.y = y
         self.speed = 5
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
         self.colliding = []
         self.hearts = Player_Life(self.screen,"Life: " + self.name, 30, 30)
         self.keydown = False
+        #variabler for å tegne
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill(RED)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x,y)
         #attack variabler
-
         self.direction = "x+"
         self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
-        self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
+        self.sword_rect = self.sword_image.get_rect(midleft = self.rect.midleft)
         self.sword_image = pygame.image.load("sword_x+.png")
         self.sword_timer = 0
         self.show_sword = False
         self.can_use_sword = False
+
+
 
     def __str__(self):
         return self.name
@@ -274,7 +281,7 @@ class Player:
 
         for obj in objects:
             if isinstance(obj, Enemy):
-                if self.rec.colliderect(obj.rec):
+                if self.rect.colliderect(obj.rect):
                    # print(self, "collided with", obj)
 
                     if obj not in self.colliding:
@@ -286,7 +293,7 @@ class Player:
                         self.colliding.remove(obj)
 
             if isinstance(obj, Chest):
-                if self.rec.colliderect(obj.rec):
+                if self.rect.colliderect(obj.rect):
                    # print(self, "collided with ", obj)
 
                     if obj not in self.colliding:
@@ -325,84 +332,79 @@ class Player:
 
 
 
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
 
         for obj in objects:
 
             if isinstance(obj, (Wall,Nothing)):
-                if self.rec.colliderect(obj.rec):
-                    dx =self.rec.centerx - obj.rec.centerx
-                    dy = self.rec.centery - obj.rec.centery
+                if self.rect.colliderect(obj.rect):
+                    dx =self.rect.centerx - obj.rect.centerx
+                    dy = self.rect.centery - obj.rect.centery
 
                     if abs(dx) > abs(dy):
                         if dx > 0:
-                            self.x = obj.rec.right
+                            self.x = obj.rect.right
                         else:
-                            self.x = obj.rec.left - self.rec.width
+                            self.x = obj.rect.left - self.rect.width
                       #  print(self, "collided with ", obj)
                     else:
                         if dy > 0:
-                         self.y = obj.rec.bottom
+                         self.y = obj.rect.bottom
                         else:
-                            self.y = obj.rec.top - self.rec.height
+                            self.y = obj.rect.top - self.rect.height
                        # print(self, "collided with ", obj)
 
             elif isinstance(obj, Tower):
-                if self.rec.colliderect(obj.rec):
+                if self.rect.colliderect(obj.rect):
                        # print(self, "collided with", obj)
                         new_background = True
 
         return new_background
 
-    def draw(self):
-        self.rec = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(self.screen, RED, self.rec)
+    def sword_draw(self):
 
         if self.show_sword:
             self.sword_timer += 1
             self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
             self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
             if self.direction == "x+":
-                self.sword_rec = self.sword_image.get_rect(midleft = self.rec.midleft)
-                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rect = self.sword_image.get_rect(midleft = self.rect.midleft)
+                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
             elif self.direction == "x-":
-                self.sword_rec = self.sword_image.get_rect(midright = self.rec.midright)
-                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rect = self.sword_image.get_rect(midright = self.rect.midright)
+                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
             elif self.direction == "y+":
-                self.sword_rec = self.sword_image.get_rect(midtop = self.rec.midtop)
-                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rect = self.sword_image.get_rect(midtop = self.rect.midtop)
+                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
             elif self.direction == "y-":
-                self.sword_rec = self.sword_image.get_rect(midbottom = self.rec.midbottom)
-                self.sword_rec = self.screen.blit(self.sword_image, self.sword_rec)
+                self.sword_rect = self.sword_image.get_rect(midbottom = self.rect.midbottom)
+                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
 
             if self.sword_timer == 10:
                 self.show_sword = False
 
 
-
-
-class Game():
+class Game:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
         self.create_world("world.map")
         self.tekst_size = pygame.font.Font(None, 60)
-
         self.new_background = False
 
     def create_world(self,name: str):
 
         kart = open(name, "r")
-        self.all_objects = []
-        self.enemies = []
-        self.walls = []
-        self.chests = []
-        self.towers = []
-        self.nothings = []
+        self.all_objects = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
+        self.walls = pygame.sprite.Group()
+        self.chests = pygame.sprite.Group()
+        self.towers = pygame.sprite.Group()
+        self.nothings = pygame.sprite.Group()
         x = 0
         y = 0
-        self.player = None
+        player = None
 
 
         if name.startswith("tower"):
@@ -421,34 +423,39 @@ class Game():
                     continue
                 elif col == "N":
                     nothing = Nothing(self.screen,"nothing" + str(x) + str(y), x, y)
-                    self.nothings.append(nothing)
-                    self.all_objects.append(nothing)
+                    self.nothings.add(nothing)
+                    self.all_objects.add(nothing)
                 elif col == "P":
-                    self.player = Player(self.screen,"player" + str(x) + str(y), x, y)
-                    self.all_objects.append(self.player.sword_rec)
-                    self.all_objects.append(self.player)
+                    player = Player(self.screen,"player" + str(x) + str(y), x, y)
+                    self.all_objects.add(player.sword_rect)
+                    self.all_objects.add(player)
                 elif col == "X":
                     wall = Wall(self.screen,"wall " + str(x) + str(y), x, y)
-                    self.walls.append(wall)
-                    self.all_objects.append(wall)
+                    self.walls.add(wall)
+                    self.all_objects.add(wall)
                 elif col == "C":
                     chest = Chest(self.screen,"chest " + str(x) + str(y), x, y)
-                    self.chests.append(chest)
-                    self.all_objects.append(chest)
+                    self.chests.add(chest)
+                    self.all_objects.add(chest)
                 elif col == "E":
                     enemy = Enemy(self.screen,"enemy " + str(x) + str(y), x, y)
-                    self.enemies.append(enemy)
-                    self.all_objects.append(enemy)
+                    self.enemies.add(enemy)
+                    self.all_objects.add(enemy)
                 elif col == "T":
                     tower = Tower(self.screen,"tower " + str(x) + str(y), x, y)
-                    self.towers.append(tower)
-                    self.all_objects.append(tower)
+                    self.towers.add(tower)
+                    self.all_objects.add(tower)
 
 
-        if self.player is None:
+        if player is None:
             raise RuntimeWarning("player must be in the map")
+        self.player = player
 
-        self.crashable_objects = self.walls + self.chests + self.towers + self.nothings
+        self.crashable_objects = pygame.sprite.Group()
+        self.crashable_objects.add(self.walls)
+        self.crashable_objects.add(self.chests)
+        self.crashable_objects.add(self.towers)
+        self.crashable_objects.add(self.nothings)
 
 
     def step(self):
@@ -469,39 +476,33 @@ class Game():
 
 
 
-        for chest in self.chests:
-            chest.draw()
-        for wall in self.walls:
-            wall.draw()
-        enemies = [enemy for enemy in self.enemies if enemy.life > 0]
-        for obj in self.all_objects[:]:
-            if isinstance(obj, Enemy):
-                if obj.life <= 0:
-                    self.all_objects.remove(obj)
 
-        for enemy in enemies:
-            enemy.movement_enemy(self.all_objects, self.player.x, self.player.y)
-            enemy.draw()
-        for tower in self.towers:
-            tower.draw()
-        for nothing in self.nothings:
-            nothing.draw()
+        self.chests.draw(self.screen)
+        self.walls.draw(self.screen)
+      #  enemiese = [enemy for enemy in self.enemiese if enemy.life > 0]
+     #   for obj in self.all_objects[:]:
+     #      if isinstance(obj, Enemy):
+     #           if obj.life <= 0:
+     #               self.all_objects.remove(obj)
+
+        self.enemies.update(self.all_objects, self.player.x, self.player.y)
+        self.enemies.draw(self.screen)
+        self.towers.draw(self.screen)
+        self.nothings.draw(self.screen)
 
         self.new_background = self.player.update_pose(self.all_objects)
-        life = self.player.update_life(self.all_objects)
-        self.player.draw()
-        self.player.hearts.draw()
+        self.player.update_life(self.all_objects)
+        self.player.draw(self.screen)
+        self.player.hearts.draw(self.screen)
 
         pygame.display.flip()
         pygame.time.Clock().tick(60)
-
 
 if __name__ == "__main__":
 
     game = Game()
 
     running = True
-
     while running:
         game.step()
 
