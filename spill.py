@@ -107,6 +107,7 @@ class Enemy (pygame.sprite.Sprite):
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
 
         if abs(distance_player) < 80 + self.width:
+            print("target == player")
             self.target_x = p_x
             self.target_y = p_y
 
@@ -114,6 +115,7 @@ class Enemy (pygame.sprite.Sprite):
         distance_y = self.target_y - self.y
 
         if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
+            print("abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:")
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
@@ -147,8 +149,8 @@ class Enemy (pygame.sprite.Sprite):
                             else:
                                 self.y = obj.rect.top - self.rect.height
 
-            if isinstance(obj, (Player)):
-                if self.rect.colliderect(obj.sword_rect):
+            if isinstance(obj, (Sword)):
+                if self.rect.colliderect(obj.rect):
                     self.life -= 10
 
 
@@ -240,11 +242,62 @@ class Player_Life:
 
             self.rec = self.screen.blit(scaled_image, (x, self.y))
 
+class Sword(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image_xpluss = pygame.transform.scale_by(pygame.image.load("sword_x+.png"), 0.3)
+        self.image_xminus = pygame.transform.scale_by(pygame.image.load("sword_x-.png"), 0.3)
+        self.image_ypluss = pygame.transform.scale_by(pygame.image.load("sword_y+.png"), 0.3)
+        self.image_yminus = pygame.transform.scale_by(pygame.image.load("sword_y-.png"), 0.3)
+        self.hidden_image = pygame.Surface(self.image_yminus.get_rect().size, pygame.SRCALPHA)
+        self.hidden_image.fill((0, 0, 0, 0))
+        self.image = self.hidden_image
+        self.rect = self.image.get_rect()
+        self.timer = 0
+        self.show_sword = False
+        self.can_use_sword = False
+
+    def attack(self):
+        button = pygame.key.get_pressed()
+        if not button[pygame.K_SPACE]:
+            self.can_use_sword = True
+        if button[pygame.K_SPACE] and self.can_use_sword:
+                self.show_sword = True
+                self.timer = 0
+                self.can_use_sword = False
+
+    def update_pos(self, player):
+        if self.show_sword:
+            self.timer += 1
+            print("SHOW SWORD", self.timer, player.rect)
+            if player.direction == "x+":
+                self.image = self.image_xpluss
+                self.rect = self.image.get_rect(midleft = player.rect.midleft)
+
+            elif player.direction == "x-":
+                self.image = self.image_xminus
+                self.rect = self.image.get_rect(midright = player.rect.midright)
+
+            elif player.direction == "y+":
+                self.image = self.image_ypluss
+                self.rect = self.image.get_rect(midtop = player.rect.midtop)
+
+            elif player.direction == "y-":
+                self.image = self.image_yminus
+                self.rect = self.image.get_rect(midbottom = player.rect.midbottom)
+
+            else:
+                raise RuntimeError("BAD DIRCTION", player.direction)
+
+            if self.timer == 10:
+                print("DELETE SWORD")
+                self.image = self.hidden_image
+                self.show_sword = False
+
+
 class Player(pygame.sprite.Sprite):
     width = 30
     height = 30
-
-
 
     def __init__(self,screen, name, x, y):
         super().__init__()
@@ -261,16 +314,8 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(RED)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x,y)
-        #attack variabler
+
         self.direction = "x+"
-        self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
-        self.sword_rect = self.sword_image.get_rect(midleft = self.rect.midleft)
-        self.sword_image = pygame.image.load("sword_x+.png")
-        self.sword_timer = 0
-        self.show_sword = False
-        self.can_use_sword = False
-
-
 
     def __str__(self):
         return self.name
@@ -294,7 +339,7 @@ class Player(pygame.sprite.Sprite):
 
             if isinstance(obj, Chest):
                 if self.rect.colliderect(obj.rect):
-                   # print(self, "collided with ", obj)
+                   # print(self, "collidedage.get_rect with ", obj)
 
                     if obj not in self.colliding:
                         self.hearts.increase()
@@ -323,17 +368,10 @@ class Player(pygame.sprite.Sprite):
             self.y += self.speed
             self.direction = "y+"
 
-        if not button[pygame.K_SPACE]:
-            self.can_use_sword = True
-        if button[pygame.K_SPACE] and self.can_use_sword:
-                self.show_sword = True
-                self.sword_timer = 0
-                self.can_use_sword = False
 
-
-
-        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-
+        self.rect.x = self.x
+        self.rect.y = self.y
+        #= pygame.Rect(self.x, self.y, self.width, self.height)
 
         for obj in objects:
 
@@ -362,50 +400,35 @@ class Player(pygame.sprite.Sprite):
 
         return new_background
 
-    def sword_draw(self):
-
-        if self.show_sword:
-            self.sword_timer += 1
-            self.sword_image = pygame.image.load(f"sword_{self.direction}.png")
-            self.sword_image = pygame.transform.scale_by(self.sword_image,0.3)
-            if self.direction == "x+":
-                self.sword_rect = self.sword_image.get_rect(midleft = self.rect.midleft)
-                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
-            elif self.direction == "x-":
-                self.sword_rect = self.sword_image.get_rect(midright = self.rect.midright)
-                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
-            elif self.direction == "y+":
-                self.sword_rect = self.sword_image.get_rect(midtop = self.rect.midtop)
-                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
-            elif self.direction == "y-":
-                self.sword_rect = self.sword_image.get_rect(midbottom = self.rect.midbottom)
-                self.sword_rect = self.screen.blit(self.sword_image, self.sword_rect)
-
-            if self.sword_timer == 10:
-                self.show_sword = False
-
-
 class Game:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
-        self.create_world("world.map")
         self.tekst_size = pygame.font.Font(None, 60)
         self.new_background = False
 
-
-    def create_world(self,name: str):
-
-        kart = open(name, "r")
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
         self.chests = pygame.sprite.Group()
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
+
+        self.crashable_objects = pygame.sprite.Group()
+        self.crashable_objects.add(self.walls)
+        self.crashable_objects.add(self.chests)
+        self.crashable_objects.add(self.towers)
+        self.crashable_objects.add(self.nothings)
+
+        self.create_world("world.map")
+
+    def create_world(self,name: str):
+
+        kart = open(name, "r")
         x = 0
         y = 0
         player = None
+        sword = None
 
 
         if name.startswith("tower"):
@@ -428,7 +451,8 @@ class Game:
                     self.all_objects.add(nothing)
                 elif col == "P":
                     player = Player(self.screen,"player" + str(x) + str(y), x, y)
-                    self.all_objects.add(player.sword_rect)
+                    sword = Sword()
+                    self.all_objects.add(sword)
                     self.all_objects.add(player)
                 elif col == "X":
                     wall = Wall(self.screen,"wall " + str(x) + str(y), x, y)
@@ -448,20 +472,18 @@ class Game:
                     self.all_objects.add(tower)
 
 
-        if player is None:
+        if player is None or sword is None:
             raise RuntimeWarning("player must be in the map")
-        self.player = player
 
-        self.crashable_objects = pygame.sprite.Group()
-        self.crashable_objects.add(self.walls)
-        self.crashable_objects.add(self.chests)
-        self.crashable_objects.add(self.towers)
-        self.crashable_objects.add(self.nothings)
+        self.player = player
+        self.sword = sword
+
+
 
 
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
-        tekst = self.tekst_size.render(f"player, {self.player.sword_timer}", True, RED)
+        tekst = self.tekst_size.render(f"player, {self.sword.timer}", True, RED)
         tekst_rect = tekst.get_rect(center = (240, 30))
         self.screen.blit(tekst, tekst_rect )
 
@@ -476,26 +498,23 @@ class Game:
             self.player.hearts.dead = False
 
 
-
-
-        self.chests.draw(self.screen)
-        self.walls.draw(self.screen)
       #  enemiese = [enemy for enemy in self.enemiese if enemy.life > 0]
      #   for obj in self.all_objects[:]:
      #      if isinstance(obj, Enemy):
      #           if obj.life <= 0:
-     #               self.all_objects.remove(obj)
+     #              self.all_objects.remove(obj)
 
         self.enemies.update(self.all_objects, self.player.x, self.player.y)
-        self.enemies.draw(self.screen)
-        self.towers.draw(self.screen)
-        self.nothings.draw(self.screen)
 
-        self.new_background = self.player.update_pose(self.all_objects)
+        self.player.update_pose(self.all_objects)
         self.player.update_life(self.all_objects)
-        self.player.draw(self.screen)
-        self.player.hearts.draw(self.screen)
 
+        self.sword.update_pos(self.player)
+        self.sword.attack()
+
+
+        self.all_objects.draw(self.screen)
+        self.player.hearts.draw()
         pygame.display.flip()
         pygame.time.Clock().tick(60)
 
