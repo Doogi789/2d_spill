@@ -107,7 +107,6 @@ class Enemy (pygame.sprite.Sprite):
         distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
 
         if abs(distance_player) < 80 + self.width:
-            print("target == player")
             self.target_x = p_x
             self.target_y = p_y
 
@@ -115,7 +114,6 @@ class Enemy (pygame.sprite.Sprite):
         distance_y = self.target_y - self.y
 
         if abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:
-            print("abs(distance_x) > self.speed / 2 and abs(distance_y) > self.speed / 2:")
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
@@ -151,10 +149,11 @@ class Enemy (pygame.sprite.Sprite):
 
             if isinstance(obj, (Sword)):
                 if self.rect.colliderect(obj.rect):
+                    print("COLLIDE")
                     self.life -= 10
 
-
                       #  print(self, "collided with ", obj)
+
 
 class Wall(pygame.sprite.Sprite):
     width = 30
@@ -478,9 +477,6 @@ class Game:
         self.player = player
         self.sword = sword
 
-
-
-
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
         tekst = self.tekst_size.render(f"player, {self.sword.timer}", True, RED)
@@ -498,11 +494,10 @@ class Game:
             self.player.hearts.dead = False
 
 
-      #  enemiese = [enemy for enemy in self.enemiese if enemy.life > 0]
-     #   for obj in self.all_objects[:]:
-     #      if isinstance(obj, Enemy):
-     #           if obj.life <= 0:
-     #              self.all_objects.remove(obj)
+        for obj in self.all_objects:
+           if isinstance(obj, Enemy):
+                if obj.life <= 0:
+                    pygame.sprite.Sprite.kill(obj)
 
         self.enemies.update(self.all_objects, self.player.x, self.player.y)
 
