@@ -55,6 +55,7 @@ class Nothing(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
+
 class Tower(pygame.sprite.Sprite):
     width = 60
     height = 90
@@ -74,6 +75,7 @@ class Tower(pygame.sprite.Sprite):
         return self.name
 
     __repr__ = __str__
+
 
 class Enemy (pygame.sprite.Sprite):
     width = 30
@@ -176,6 +178,7 @@ class Wall(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
+
 class Chest(pygame.sprite.Sprite):
     width = 30
     height = 30
@@ -195,9 +198,11 @@ class Chest(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
+
 class Direction(Enum):
     XPLUS = auto()
     XMINUS = auto()
+
 
 class Player_Life:
     width = 50
@@ -240,6 +245,7 @@ class Player_Life:
             x = self.x + (self.width * idx)
 
             self.rec = self.screen.blit(scaled_image, (x, self.y))
+
 
 class Sword(pygame.sprite.Sprite):
     def __init__(self):
@@ -394,10 +400,12 @@ class Player(pygame.sprite.Sprite):
 
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
-                       # print(self, "collided with", obj)
-                        new_background = True
+                       print(self, "collided with", obj)
+                       game.new_background = True
 
-        return new_background
+           # print(self, "collided with ", obj)
+
+
 
 class Game:
     def __init__(self):
@@ -428,7 +436,23 @@ class Game:
         y = 0
         player = None
         sword = None
-
+        self.all_objects = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
+        self.walls = pygame.sprite.Group()
+        self.chests = pygame.sprite.Group()
+        self.towers = pygame.sprite.Group()
+        self.nothings = pygame.sprite.Group()
+        print(self.all_objects)
+        print("line")
+        print( self.enemies)
+        print("line")
+        print( self.walls)
+        print("line")
+        print(self.chests)
+        print("line")
+        print(self.towers)
+        print("line")
+        print(self.nothings)
 
         if name.startswith("tower"):
             self.background_image = pygame.image.load("tower.background.png")
@@ -485,6 +509,7 @@ class Game:
 
         if self.new_background:
             self.create_world("tower.map")
+            self.new_background = False
 
         if self.player.hearts.dead:
             tekst = self.tekst_size.render("GAME OVER", True, RED)
@@ -512,6 +537,7 @@ class Game:
         self.player.hearts.draw()
         pygame.display.flip()
         pygame.time.Clock().tick(60)
+
 
 if __name__ == "__main__":
 
