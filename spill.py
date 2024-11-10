@@ -35,6 +35,18 @@ def split_into_chunks(n, x):
     return chunks
 
 
+def knockback(obj,x,y,rect):
+    knockback = 25
+    if obj.direction == "x+":
+            x += knockback
+    if obj.direction == "x-":
+            x -= knockback
+    if obj.direction == "y+":
+            y += knockback
+    if obj.direction == "x-":
+            y -= knockback
+
+    return(x,y)
 
 class Nothing(pygame.sprite.Sprite):
     width = 30
@@ -97,7 +109,9 @@ class Enemy (pygame.sprite.Sprite):
         self.speed = 2
         self.target_y = randint(0, screen_height - self.height)
         self.target_x = randint(0, screen_width - self.width)
-        self.life = 10
+        self.life = 50
+        #knockback
+        self.direction = "x+"
 
     def __str__(self):
         return self.name
@@ -119,13 +133,17 @@ class Enemy (pygame.sprite.Sprite):
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
+                    self.direction = "x+"
                 else:
                     self.x -= self.speed
+                    self.direction = "x-"
             else:
                 if distance_y > 0:
                     self.y += self.speed
+                    self.direction = "y+"
                 else:
                     self.y -= self.speed
+                    self.direction = "y-"
         else:
             self.target_y = randint(0, screen_height - self.height)
             self.target_x = randint(0, screen_width - self.width)
@@ -153,6 +171,7 @@ class Enemy (pygame.sprite.Sprite):
                 if self.rect.colliderect(obj.rect):
                     print("COLLIDE")
                     self.life -= 10
+                    self.x, self.y = knockback(obj, self.x, self.y, self.rect)
 
                       #  print(self, "collided with ", obj)
 
@@ -272,6 +291,7 @@ class Sword(pygame.sprite.Sprite):
                 self.can_use_sword = False
 
     def update_pos(self, player):
+        self.direction = player.direction
         if self.show_sword:
             self.timer += 1
             print("SHOW SWORD", self.timer, player.rect)
@@ -319,7 +339,6 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(RED)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x,y)
-
         self.direction = "x+"
 
     def __str__(self):
@@ -333,6 +352,7 @@ class Player(pygame.sprite.Sprite):
             if isinstance(obj, Enemy):
                 if self.rect.colliderect(obj.rect):
                    # print(self, "collided with", obj)
+                    self.x,self.y = knockback(obj, self.x, self.y, self.rect)
 
                     if obj not in self.colliding:
                         self.hearts.decrease()
@@ -341,6 +361,9 @@ class Player(pygame.sprite.Sprite):
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
+
+
+
 
             if isinstance(obj, Chest):
                 if self.rect.colliderect(obj.rect):
@@ -353,6 +376,7 @@ class Player(pygame.sprite.Sprite):
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
+
 
         return self.hearts.life
 
@@ -376,7 +400,6 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x = self.x
         self.rect.y = self.y
-        #= pygame.Rect(self.x, self.y, self.width, self.height)
 
         for obj in objects:
 
@@ -402,6 +425,8 @@ class Player(pygame.sprite.Sprite):
                 if self.rect.colliderect(obj.rect):
                        print(self, "collided with", obj)
                        game.new_background = True
+
+
 
            # print(self, "collided with ", obj)
 
@@ -442,17 +467,6 @@ class Game:
         self.chests = pygame.sprite.Group()
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
-        print(self.all_objects)
-        print("line")
-        print( self.enemies)
-        print("line")
-        print( self.walls)
-        print("line")
-        print(self.chests)
-        print("line")
-        print(self.towers)
-        print("line")
-        print(self.nothings)
 
         if name.startswith("tower"):
             self.background_image = pygame.image.load("tower.background.png")
@@ -526,8 +540,9 @@ class Game:
 
         self.enemies.update(self.all_objects, self.player.x, self.player.y)
 
-        self.player.update_pose(self.all_objects)
         self.player.update_life(self.all_objects)
+        self.player.update_pose(self.all_objects)
+
 
         self.sword.update_pos(self.player)
         self.sword.attack()
