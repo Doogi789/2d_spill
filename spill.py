@@ -1,9 +1,6 @@
-
 import pygame
 from random import randint
 from enum import Enum, auto
-
-
 
 
 WHITE = (255, 255, 255)
@@ -35,23 +32,25 @@ def split_into_chunks(n, x):
     return chunks
 
 
-def knockback(obj,x,y,rect):
+def knockback(obj, x, y, rect):
     knockback = 25
     if obj.direction == "x+":
-            x += knockback
+        x += knockback
     if obj.direction == "x-":
-            x -= knockback
+        x -= knockback
     if obj.direction == "y+":
-            y += knockback
+        y += knockback
     if obj.direction == "x-":
-            y -= knockback
+        y -= knockback
 
-    return(x,y)
+    return (x, y)
+
 
 class Nothing(pygame.sprite.Sprite):
     width = 30
     height = 30
-    def __init__(self,screen, name, x, y):
+
+    def __init__(self, screen, name, x, y):
         super().__init__()
         self.screen = screen
         self.name = name
@@ -60,7 +59,7 @@ class Nothing(pygame.sprite.Sprite):
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(BLACK)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rect.topleft = (x,y)
+        self.rect.topleft = (x, y)
 
     def __str__(self):
         return self.name
@@ -72,16 +71,18 @@ class Tower(pygame.sprite.Sprite):
     width = 60
     height = 90
 
-    def __init__(self,screen, name, x, y):
+    def __init__(self, screen, name, x, y):
         super().__init__()
         self.screen = screen
         self.x = x
         self.y = y
         self.name = name
         self.original_image = pygame.image.load("tower.png")
-        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.image = pygame.transform.scale(
+            self.original_image, (self.width, self.height)
+        )
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rect.topleft = (x,y)
+        self.rect.topleft = (x, y)
 
     def __str__(self):
         return self.name
@@ -89,28 +90,28 @@ class Tower(pygame.sprite.Sprite):
     __repr__ = __str__
 
 
-class Enemy (pygame.sprite.Sprite):
+class Enemy(pygame.sprite.Sprite):
     width = 30
     height = 30
 
-    def __init__(self,screen, name, x, y):
+    def __init__(self, screen, name, x, y):
         super().__init__()
-        #variabler som er hentet
+        # variabler som er hentet
         self.name = name
         self.x = x
         self.y = y
         self.screen = screen
-        #variabler for å tegne
+        # variabler for å tegne
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill((WHITE))
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rect.topleft = (x,y)
-        #variabler får å bevege
+        self.rect.topleft = (x, y)
+        # variabler får å bevege
         self.speed = 2
         self.target_y = randint(0, screen_height - self.height)
         self.target_x = randint(0, screen_width - self.width)
         self.life = 50
-        #knockback
+        # knockback
         self.direction = "x+"
 
     def __str__(self):
@@ -118,9 +119,8 @@ class Enemy (pygame.sprite.Sprite):
 
     __repr__ = __str__
 
-
-    def update(self, objects, p_x, p_y):
-        distance_player = ((self.x - p_x)**2 + (self.y - p_y)**2)**0.5
+    def update_pose(self, objects, p_x, p_y):
+        distance_player = ((self.x - p_x) ** 2 + (self.y - p_y) ** 2) ** 0.5
 
         if abs(distance_player) < 80 + self.width:
             self.target_x = p_x
@@ -148,24 +148,24 @@ class Enemy (pygame.sprite.Sprite):
             self.target_y = randint(0, screen_height - self.height)
             self.target_x = randint(0, screen_width - self.width)
 
-        self.rect = pygame.Rect(self.x, self.y,self.width, self.height)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
         for obj in objects:
             if isinstance(obj, (Wall, Chest, Tower)):
                 if self.rect.colliderect(obj.rect):
-                        dx =self.rect.centerx - obj.rect.centerx
-                        dy = self.rect.centery - obj.rect.centery
+                    dx = self.rect.centerx - obj.rect.centerx
+                    dy = self.rect.centery - obj.rect.centery
 
-                        if abs(dx) > abs(dy):
-                            if dx > 0:
-                                self.x = obj.rect.right
-                            else:
-                                self.x = obj.rect.left - self.rect.width
+                    if abs(dx) > abs(dy):
+                        if dx > 0:
+                            self.x = obj.rect.right
                         else:
-                            if dy > 0:
-                               self.y = obj.rect.bottom
-                            else:
-                                self.y = obj.rect.top - self.rect.height
+                            self.x = obj.rect.left - self.rect.width
+                    else:
+                        if dy > 0:
+                            self.y = obj.rect.bottom
+                        else:
+                            self.y = obj.rect.top - self.rect.height
 
             if isinstance(obj, (Sword)):
                 if self.rect.colliderect(obj.rect):
@@ -173,7 +173,7 @@ class Enemy (pygame.sprite.Sprite):
                     self.life -= 10
                     self.x, self.y = knockback(obj, self.x, self.y, self.rect)
 
-                      #  print(self, "collided with ", obj)
+                    #  print(self, "collided with ", obj)
 
 
 class Wall(pygame.sprite.Sprite):
@@ -187,13 +187,14 @@ class Wall(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.original_image = pygame.image.load("wall.png")
-        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.image = pygame.transform.scale(
+            self.original_image, (self.width, self.height)
+        )
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rect.topleft = (x,y)
+        self.rect.topleft = (x, y)
 
     def __str__(self):
         return self.name
-
 
     __repr__ = __str__
 
@@ -209,7 +210,9 @@ class Chest(pygame.sprite.Sprite):
         self.x = x
         self.y = y
         self.original_image = pygame.image.load("chest.png")
-        self.image = pygame.transform.scale(self.original_image, (self.width, self.height))
+        self.image = pygame.transform.scale(
+            self.original_image, (self.width, self.height)
+        )
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def __str__(self):
@@ -226,14 +229,15 @@ class Direction(Enum):
 class Player_Life:
     width = 50
     height = 50
-    def __init__(self,screen, name, x, y):
+
+    def __init__(self, screen, name, x, y):
         self.screen = screen
         self.x = x
         self.y = y
         self.life = 12
         self.max_life = self.life
         self.name = name
-        self.rec = (self.x , self.y, self.width, self.height)
+        self.rec = (self.x, self.y, self.width, self.height)
         self.hearts = [
             pygame.image.load(f"heart_{i}.png").convert_alpha() for i in range(5)
         ]
@@ -246,9 +250,8 @@ class Player_Life:
     def decrease(self):
         self.life -= 1
         if self.life < 0:
-            self.dead  = True
+            self.dead = True
         return self.dead
-
 
     def __str__(self):
         return self.name
@@ -259,7 +262,7 @@ class Player_Life:
         for idx, heart_idx in enumerate(split_into_chunks(self.life, 4)):
             image = self.hearts[heart_idx]
 
-            scaled_image = pygame.transform.scale(image, (self.width, self.height) )
+            scaled_image = pygame.transform.scale(image, (self.width, self.height))
 
             x = self.x + (self.width * idx)
 
@@ -269,11 +272,21 @@ class Player_Life:
 class Sword(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image_xpluss = pygame.transform.scale_by(pygame.image.load("sword_x+.png"), 0.3)
-        self.image_xminus = pygame.transform.scale_by(pygame.image.load("sword_x-.png"), 0.3)
-        self.image_ypluss = pygame.transform.scale_by(pygame.image.load("sword_y+.png"), 0.3)
-        self.image_yminus = pygame.transform.scale_by(pygame.image.load("sword_y-.png"), 0.3)
-        self.hidden_image = pygame.Surface(self.image_yminus.get_rect().size, pygame.SRCALPHA)
+        self.image_xpluss = pygame.transform.scale_by(
+            pygame.image.load("sword_x+.png"), 0.3
+        )
+        self.image_xminus = pygame.transform.scale_by(
+            pygame.image.load("sword_x-.png"), 0.3
+        )
+        self.image_ypluss = pygame.transform.scale_by(
+            pygame.image.load("sword_y+.png"), 0.3
+        )
+        self.image_yminus = pygame.transform.scale_by(
+            pygame.image.load("sword_y-.png"), 0.3
+        )
+        self.hidden_image = pygame.Surface(
+            self.image_yminus.get_rect().size, pygame.SRCALPHA
+        )
         self.hidden_image.fill((0, 0, 0, 0))
         self.image = self.hidden_image
         self.rect = self.image.get_rect()
@@ -286,9 +299,9 @@ class Sword(pygame.sprite.Sprite):
         if not button[pygame.K_SPACE]:
             self.can_use_sword = True
         if button[pygame.K_SPACE] and self.can_use_sword:
-                self.show_sword = True
-                self.timer = 0
-                self.can_use_sword = False
+            self.show_sword = True
+            self.timer = 0
+            self.can_use_sword = False
 
     def update_pos(self, player):
         self.direction = player.direction
@@ -297,19 +310,19 @@ class Sword(pygame.sprite.Sprite):
             print("SHOW SWORD", self.timer, player.rect)
             if player.direction == "x+":
                 self.image = self.image_xpluss
-                self.rect = self.image.get_rect(midleft = player.rect.midleft)
+                self.rect = self.image.get_rect(midleft=player.rect.midleft)
 
             elif player.direction == "x-":
                 self.image = self.image_xminus
-                self.rect = self.image.get_rect(midright = player.rect.midright)
+                self.rect = self.image.get_rect(midright=player.rect.midright)
 
             elif player.direction == "y+":
                 self.image = self.image_ypluss
-                self.rect = self.image.get_rect(midtop = player.rect.midtop)
+                self.rect = self.image.get_rect(midtop=player.rect.midtop)
 
             elif player.direction == "y-":
                 self.image = self.image_yminus
-                self.rect = self.image.get_rect(midbottom = player.rect.midbottom)
+                self.rect = self.image.get_rect(midbottom=player.rect.midbottom)
 
             else:
                 raise RuntimeError("BAD DIRCTION", player.direction)
@@ -324,7 +337,7 @@ class Player(pygame.sprite.Sprite):
     width = 30
     height = 30
 
-    def __init__(self,screen, name, x, y):
+    def __init__(self, screen, name, x, y):
         super().__init__()
         self.screen = screen
         self.name = name
@@ -332,13 +345,13 @@ class Player(pygame.sprite.Sprite):
         self.y = y
         self.speed = 5
         self.colliding = []
-        self.hearts = Player_Life(self.screen,"Life: " + self.name, 30, 30)
+        self.hearts = Player_Life(self.screen, "Life: " + self.name, 30, 30)
         self.keydown = False
-        #variabler for å tegne
+        # variabler for å tegne
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(RED)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.rect.topleft = (x,y)
+        self.rect.topleft = (x, y)
         self.direction = "x+"
 
     def __str__(self):
@@ -347,12 +360,16 @@ class Player(pygame.sprite.Sprite):
     __repr__ = __str__
 
     def update_life(self, objects):
-
         for obj in objects:
             if isinstance(obj, Enemy):
                 if self.rect.colliderect(obj.rect):
-                   # print(self, "collided with", obj)
-                    self.x,self.y = knockback(obj, self.x, self.y, self.rect)
+                    # print(self, "collided with", obj)
+                    self.x, self.y = knockback(
+                        obj,
+                        self.x,
+                        self.y,
+                        self.rect,
+                    )
 
                     if obj not in self.colliding:
                         self.hearts.decrease()
@@ -362,12 +379,9 @@ class Player(pygame.sprite.Sprite):
                     if obj in self.colliding:
                         self.colliding.remove(obj)
 
-
-
-
             if isinstance(obj, Chest):
                 if self.rect.colliderect(obj.rect):
-                   # print(self, "collidedage.get_rect with ", obj)
+                    # print(self, "collidedage.get_rect with ", obj)
 
                     if obj not in self.colliding:
                         self.hearts.increase()
@@ -376,7 +390,6 @@ class Player(pygame.sprite.Sprite):
                 else:
                     if obj in self.colliding:
                         self.colliding.remove(obj)
-
 
         return self.hearts.life
 
@@ -397,15 +410,13 @@ class Player(pygame.sprite.Sprite):
             self.y += self.speed
             self.direction = "y+"
 
-
         self.rect.x = self.x
         self.rect.y = self.y
 
         for obj in objects:
-
-            if isinstance(obj, (Wall,Nothing)):
+            if isinstance(obj, (Wall, Nothing)):
                 if self.rect.colliderect(obj.rect):
-                    dx =self.rect.centerx - obj.rect.centerx
+                    dx = self.rect.centerx - obj.rect.centerx
                     dy = self.rect.centery - obj.rect.centery
 
                     if abs(dx) > abs(dy):
@@ -413,23 +424,20 @@ class Player(pygame.sprite.Sprite):
                             self.x = obj.rect.right
                         else:
                             self.x = obj.rect.left - self.rect.width
-                      #  print(self, "collided with ", obj)
+                    #  print(self, "collided with ", obj)
                     else:
                         if dy > 0:
-                         self.y = obj.rect.bottom
+                            self.y = obj.rect.bottom
                         else:
                             self.y = obj.rect.top - self.rect.height
-                       # print(self, "collided with ", obj)
+                    # print(self, "collided with ", obj)
 
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
-                       print(self, "collided with", obj)
-                       game.new_background = True
+                    print(self, "collided with", obj)
+                    game.new_background = True
 
-
-
-           # print(self, "collided with ", obj)
-
+        # print(self, "collided with ", obj)
 
 
 class Game:
@@ -454,8 +462,7 @@ class Game:
 
         self.create_world("world.map")
 
-    def create_world(self,name: str):
-
+    def create_world(self, name: str):
         kart = open(name, "r")
         x = 0
         y = 0
@@ -473,7 +480,9 @@ class Game:
         else:
             self.background_image = pygame.image.load("main.background.jpg")
 
-        self.background_image = pygame.transform.scale(self.background_image, (screen_width, screen_height))
+        self.background_image = pygame.transform.scale(
+            self.background_image, (screen_width, screen_height)
+        )
 
         for line in kart.readlines():
             y += 30
@@ -483,31 +492,30 @@ class Game:
                 if col == ".":
                     continue
                 elif col == "N":
-                    nothing = Nothing(self.screen,"nothing" + str(x) + str(y), x, y)
+                    nothing = Nothing(self.screen, "nothing" + str(x) + str(y), x, y)
                     self.nothings.add(nothing)
                     self.all_objects.add(nothing)
                 elif col == "P":
-                    player = Player(self.screen,"player" + str(x) + str(y), x, y)
+                    player = Player(self.screen, "player" + str(x) + str(y), x, y)
                     sword = Sword()
                     self.all_objects.add(sword)
                     self.all_objects.add(player)
                 elif col == "X":
-                    wall = Wall(self.screen,"wall " + str(x) + str(y), x, y)
+                    wall = Wall(self.screen, "wall " + str(x) + str(y), x, y)
                     self.walls.add(wall)
                     self.all_objects.add(wall)
                 elif col == "C":
-                    chest = Chest(self.screen,"chest " + str(x) + str(y), x, y)
+                    chest = Chest(self.screen, "chest " + str(x) + str(y), x, y)
                     self.chests.add(chest)
                     self.all_objects.add(chest)
                 elif col == "E":
-                    enemy = Enemy(self.screen,"enemy " + str(x) + str(y), x, y)
+                    enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
                     self.enemies.add(enemy)
                     self.all_objects.add(enemy)
                 elif col == "T":
-                    tower = Tower(self.screen,"tower " + str(x) + str(y), x, y)
+                    tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
                     self.towers.add(tower)
                     self.all_objects.add(tower)
-
 
         if player is None or sword is None:
             raise RuntimeWarning("player must be in the map")
@@ -518,8 +526,8 @@ class Game:
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
         tekst = self.tekst_size.render(f"player, {self.sword.timer}", True, RED)
-        tekst_rect = tekst.get_rect(center = (240, 30))
-        self.screen.blit(tekst, tekst_rect )
+        tekst_rect = tekst.get_rect(center=(240, 30))
+        self.screen.blit(tekst, tekst_rect)
 
         if self.new_background:
             self.create_world("tower.map")
@@ -527,26 +535,24 @@ class Game:
 
         if self.player.hearts.dead:
             tekst = self.tekst_size.render("GAME OVER", True, RED)
-            tekst_rect = tekst.get_rect(center = (240, 30))
-            self.screen.blit(tekst, tekst_rect )
+            tekst_rect = tekst.get_rect(center=(240, 30))
+            self.screen.blit(tekst, tekst_rect)
             self.create_world("world.map")
             self.player.hearts.dead = False
 
-
         for obj in self.all_objects:
-           if isinstance(obj, Enemy):
+            if isinstance(obj, Enemy):
                 if obj.life <= 0:
                     pygame.sprite.Sprite.kill(obj)
 
-        self.enemies.update(self.all_objects, self.player.x, self.player.y)
+        for self.enemy in self.enemies:
+            self.enemy.update_pose(self.all_objects, self.player.x, self.player.y)
 
         self.player.update_life(self.all_objects)
         self.player.update_pose(self.all_objects)
 
-
         self.sword.update_pos(self.player)
         self.sword.attack()
-
 
         self.all_objects.draw(self.screen)
         self.player.hearts.draw()
@@ -555,7 +561,6 @@ class Game:
 
 
 if __name__ == "__main__":
-
     game = Game()
 
     running = True
@@ -566,4 +571,4 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT:
                 running = False
             #   if event.type == pygame.KEYDOWN:
-                #   print("KEYDOWN",event)
+            #   print("KEYDOWN",event)
