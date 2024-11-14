@@ -33,7 +33,6 @@ def split_into_chunks(n, x):
 
 
 def knockback(obj, x, y, game):
-    game.player_imunity = True
     knockback = 25
     if obj.direction == "x+":
         x += knockback
@@ -364,6 +363,7 @@ class Player(pygame.sprite.Sprite):
         for obj in objects:
             if isinstance(obj, Enemy):
                 if self.rect.colliderect(obj.rect) and not game.player_imunity:
+                    game.player_imunity = True
                     # print(self, "collided with", obj)
                     (
                         self.x,
