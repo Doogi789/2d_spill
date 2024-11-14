@@ -7,8 +7,8 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
-screen_height = 1000
-screen_width = 1000
+SCREEN_HEIGHT = 1000
+SCREEN_WIDTH = 1000
 
 
 def split_into_chunks(n, x):
@@ -32,7 +32,8 @@ def split_into_chunks(n, x):
     return chunks
 
 
-def knockback(obj, x, y, rect):
+def knockback(obj, x, y, game):
+    game.player_imunity = True
     knockback = 25
     if obj.direction == "x+":
         x += knockback
@@ -108,8 +109,8 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.topleft = (x, y)
         # variabler får å bevege
         self.speed = 2
-        self.target_y = randint(0, screen_height - self.height)
-        self.target_x = randint(0, screen_width - self.width)
+        self.target_y = randint(0, SCREEN_HEIGHT - self.height)
+        self.target_x = randint(0, SCREEN_WIDTH - self.width)
         self.life = 50
         # knockback
         self.direction = "x+"
@@ -122,7 +123,7 @@ class Enemy(pygame.sprite.Sprite):
     def update_pose(self, objects, p_x, p_y):
         distance_player = ((self.x - p_x) ** 2 + (self.y - p_y) ** 2) ** 0.5
 
-        if abs(distance_player) < 80 + self.width:
+        if abs(distance_player) < 80 + self.width and not game.player_imunity:
             self.target_x = p_x
             self.target_y = p_y
 
@@ -145,8 +146,8 @@ class Enemy(pygame.sprite.Sprite):
                     self.y -= self.speed
                     self.direction = "y-"
         else:
-            self.target_y = randint(0, screen_height - self.height)
-            self.target_x = randint(0, screen_width - self.width)
+            self.target_y = randint(0, SCREEN_HEIGHT - self.height)
+            self.target_x = randint(0, SCREEN_WIDTH - self.width)
 
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
@@ -167,11 +168,11 @@ class Enemy(pygame.sprite.Sprite):
                         else:
                             self.y = obj.rect.top - self.rect.height
 
-            if isinstance(obj, (Sword)):
+            if isinstance(obj, (PlayerSword)):
                 if self.rect.colliderect(obj.rect):
                     print("COLLIDE")
                     self.life -= 10
-                    self.x, self.y = knockback(obj, self.x, self.y, self.rect)
+                    self.x, self.y = knockback(obj, self.x, self.y, game)
 
                     #  print(self, "collided with ", obj)
 
@@ -226,7 +227,7 @@ class Direction(Enum):
     XMINUS = auto()
 
 
-class Player_Life:
+class PlayerLife:
     width = 50
     height = 50
 
@@ -269,7 +270,7 @@ class Player_Life:
             self.rec = self.screen.blit(scaled_image, (x, self.y))
 
 
-class Sword(pygame.sprite.Sprite):
+class PlayerSword(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image_xpluss = pygame.transform.scale_by(
@@ -345,7 +346,7 @@ class Player(pygame.sprite.Sprite):
         self.y = y
         self.speed = 5
         self.colliding = []
-        self.hearts = Player_Life(self.screen, "Life: " + self.name, 30, 30)
+        self.hearts = PlayerLife(self.screen, "Life: " + self.name, 30, 30)
         self.keydown = False
         # variabler for å tegne
         self.image = pygame.Surface((self.width, self.height))
@@ -362,14 +363,12 @@ class Player(pygame.sprite.Sprite):
     def update_life(self, objects):
         for obj in objects:
             if isinstance(obj, Enemy):
-                if self.rect.colliderect(obj.rect):
+                if self.rect.colliderect(obj.rect) and not game.player_imunity:
                     # print(self, "collided with", obj)
-                    self.x, self.y = knockback(
-                        obj,
+                    (
                         self.x,
                         self.y,
-                        self.rect,
-                    )
+                    ) = knockback(obj, self.x, self.y, game)
 
                     if obj not in self.colliding:
                         self.hearts.decrease()
@@ -393,8 +392,7 @@ class Player(pygame.sprite.Sprite):
 
         return self.hearts.life
 
-    def update_pose(self, objects):
-        new_background = False
+    def update_pose(self, objects, game):
         button = pygame.key.get_pressed()
 
         if button[pygame.K_a]:
@@ -443,24 +441,23 @@ class Player(pygame.sprite.Sprite):
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((screen_width, screen_height))
+        # tekst
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.tekst_size = pygame.font.Font(None, 60)
         self.new_background = False
-
+        # creating world
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
         self.chests = pygame.sprite.Group()
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
-
         self.crashable_objects = pygame.sprite.Group()
-        self.crashable_objects.add(self.walls)
-        self.crashable_objects.add(self.chests)
-        self.crashable_objects.add(self.towers)
-        self.crashable_objects.add(self.nothings)
+        self.crashable_objects.add(self.walls, self.chests, self.towers, self.nothings)
 
         self.create_world("world.map")
+        self.player_imunity = False
+        self.imunity_timer = 0
 
     def create_world(self, name: str):
         kart = open(name, "r")
@@ -481,7 +478,7 @@ class Game:
             self.background_image = pygame.image.load("main.background.jpg")
 
         self.background_image = pygame.transform.scale(
-            self.background_image, (screen_width, screen_height)
+            self.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)
         )
 
         for line in kart.readlines():
@@ -497,7 +494,7 @@ class Game:
                     self.all_objects.add(nothing)
                 elif col == "P":
                     player = Player(self.screen, "player" + str(x) + str(y), x, y)
-                    sword = Sword()
+                    sword = PlayerSword()
                     self.all_objects.add(sword)
                     self.all_objects.add(player)
                 elif col == "X":
@@ -525,7 +522,9 @@ class Game:
 
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
-        tekst = self.tekst_size.render(f"player, {self.sword.timer}", True, RED)
+        tekst = self.tekst_size.render(
+            f"imunity_timer, {self.imunity_timer}", True, RED
+        )
         tekst_rect = tekst.get_rect(center=(240, 30))
         self.screen.blit(tekst, tekst_rect)
 
@@ -540,6 +539,13 @@ class Game:
             self.create_world("world.map")
             self.player.hearts.dead = False
 
+        if self.player_imunity:
+            self.imunity_timer += 1
+
+            if self.imunity_timer == 25:
+                self.player_imunity = False
+                self.imunity_timer = 0
+
         for obj in self.all_objects:
             if isinstance(obj, Enemy):
                 if obj.life <= 0:
@@ -549,7 +555,7 @@ class Game:
             self.enemy.update_pose(self.all_objects, self.player.x, self.player.y)
 
         self.player.update_life(self.all_objects)
-        self.player.update_pose(self.all_objects)
+        self.player.update_pose(self.all_objects, game)
 
         self.sword.update_pos(self.player)
         self.sword.attack()
