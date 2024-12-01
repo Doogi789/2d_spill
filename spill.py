@@ -7,8 +7,10 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
-SCREEN_HEIGHT = 1000
-SCREEN_WIDTH = 1000
+WORLD_HEIGHT = 1000
+WORLD_WIDTH = 1000
+SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 500
 
 
 def split_into_chunks(n, x):
@@ -34,13 +36,14 @@ def split_into_chunks(n, x):
 
 def knockback(obj, x, y, game):
     knockback = 25
-    if obj.direction == "x+":
+    print(obj)
+    if obj.direction.x == 1:
         x += knockback
-    if obj.direction == "x-":
+    if obj.direction.x == -1:
         x -= knockback
-    if obj.direction == "y+":
+    if obj.direction.y == 1:
         y += knockback
-    if obj.direction == "x-":
+    if obj.direction.y == -1:
         y -= knockback
 
     return (x, y)
@@ -108,11 +111,11 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.topleft = (x, y)
         # variabler får å bevege
         self.speed = 2
-        self.target_y = randint(0, SCREEN_HEIGHT - self.height)
-        self.target_x = randint(0, SCREEN_WIDTH - self.width)
+        self.target_y = randint(0, WORLD_HEIGHT - self.height)
+        self.target_x = randint(0, WORLD_WIDTH - self.width)
         self.life = 50
         # knockback
-        self.direction = "x+"
+        self.direction = pygame.math.Vector2()
 
     def __str__(self):
         return self.name
@@ -133,25 +136,25 @@ class Enemy(pygame.sprite.Sprite):
             if abs(distance_x) >= abs(distance_y):
                 if distance_x > 0:
                     self.x += self.speed
-                    self.direction = "x+"
+                    self.direction.x = 1
                 else:
                     self.x -= self.speed
-                    self.direction = "x-"
+                    self.direction.x = -1
             else:
                 if distance_y > 0:
                     self.y += self.speed
-                    self.direction = "y+"
+                    self.direction.y = 1
                 else:
                     self.y -= self.speed
-                    self.direction = "y-"
+                    self.direction.y = -1
         else:
-            self.target_y = randint(0, SCREEN_HEIGHT - self.height)
-            self.target_x = randint(0, SCREEN_WIDTH - self.width)
+            self.target_y = randint(0, WORLD_HEIGHT - self.height)
+            self.target_x = randint(0, WORLD_WIDTH - self.width)
 
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
         for obj in objects:
-            if isinstance(obj, (Wall, Chest, Tower)):
+            if isinstance(obj, (Chest, Tower)):
                 if self.rect.colliderect(obj.rect):
                     dx = self.rect.centerx - obj.rect.centerx
                     dy = self.rect.centery - obj.rect.centery
@@ -166,10 +169,13 @@ class Enemy(pygame.sprite.Sprite):
                             self.y = obj.rect.bottom
                         else:
                             self.y = obj.rect.top - self.rect.height
+            if isinstance(obj, (Wall)):
+                if self.rect.colliderect(obj.rect):
+                    self.target_y = randint(0, WORLD_HEIGHT - self.height)
+                    self.target_x = randint(0, WORLD_WIDTH - self.width)
 
             if isinstance(obj, (PlayerSword)):
                 if self.rect.colliderect(obj.rect):
-                    print("COLLIDE")
                     self.life -= 10
                     self.x, self.y = knockback(obj, self.x, self.y, game)
 
@@ -239,7 +245,7 @@ class PlayerLife:
         self.name = name
         self.rec = (self.x, self.y, self.width, self.height)
         self.hearts = [
-            pygame.image.load(f"heart_{i}.png").convert_alpha() for i in range(5)
+            pygame.image.load(f"hearts/heart_{i}.png").convert_alpha() for i in range(5)
         ]
         self.dead: bool = False
 
@@ -273,16 +279,16 @@ class PlayerSword(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image_xpluss = pygame.transform.scale_by(
-            pygame.image.load("sword_x+.png"), 0.3
+            pygame.image.load("swords/sword_x+.png"), 0.3
         )
         self.image_xminus = pygame.transform.scale_by(
-            pygame.image.load("sword_x-.png"), 0.3
+            pygame.image.load("swords/sword_x-.png"), 0.3
         )
         self.image_ypluss = pygame.transform.scale_by(
-            pygame.image.load("sword_y+.png"), 0.3
+            pygame.image.load("swords/sword_y+.png"), 0.3
         )
         self.image_yminus = pygame.transform.scale_by(
-            pygame.image.load("sword_y-.png"), 0.3
+            pygame.image.load("swords/sword_y-.png"), 0.3
         )
         self.hidden_image = pygame.Surface(
             self.image_yminus.get_rect().size, pygame.SRCALPHA
@@ -303,24 +309,46 @@ class PlayerSword(pygame.sprite.Sprite):
             self.timer = 0
             self.can_use_sword = False
 
+            class Camera:
+                def __init__(self, width, height):
+                    self.camera = pygame.Rect(0, 0, width, height)
+                    self.width = width
+                    self.height = height
+
+                def apply(self, entity):
+                    """Apply the camera offset to an entity."""
+                    return entity.rect.move(self.camera.topleft)
+
+                def update(self, target):
+                    """Update the camera to follow the target."""
+                    x = -target.rect.centerx + int(self.width / 2)
+                    y = -target.rect.centery + int(self.height / 2)
+
+                    # Keep the camera within the bounds of the world
+                    x = min(0, x)  # Left edge
+                    y = min(0, y)  # Top edge
+                    x = max(-(self.width - SCREEN_WIDTH), x)  # Right edge
+                    y = max(-(self.height - SCREEN_HEIGHT), y)  # Bottom edge
+
+                    self.camera = pygame.Rect(x, y, self.width, self.height)
+
     def update_pos(self, player):
         self.direction = player.direction
         if self.show_sword:
             self.timer += 1
-            print("SHOW SWORD", self.timer, player.rect)
-            if player.direction == "x+":
+            if player.direction.x == 1:
                 self.image = self.image_xpluss
                 self.rect = self.image.get_rect(midleft=player.rect.midleft)
 
-            elif player.direction == "x-":
+            elif player.direction.x == -1:
                 self.image = self.image_xminus
                 self.rect = self.image.get_rect(midright=player.rect.midright)
 
-            elif player.direction == "y+":
+            elif player.direction.y == 1:
                 self.image = self.image_ypluss
                 self.rect = self.image.get_rect(midtop=player.rect.midtop)
 
-            elif player.direction == "y-":
+            elif player.direction.y == -1:
                 self.image = self.image_yminus
                 self.rect = self.image.get_rect(midbottom=player.rect.midbottom)
 
@@ -328,7 +356,6 @@ class PlayerSword(pygame.sprite.Sprite):
                 raise RuntimeError("BAD DIRCTION", player.direction)
 
             if self.timer == 10:
-                print("DELETE SWORD")
                 self.image = self.hidden_image
                 self.show_sword = False
 
@@ -343,7 +370,7 @@ class Player(pygame.sprite.Sprite):
         self.name = name
         self.x = x
         self.y = y
-        self.speed = 5
+        self.speed = 3
         self.colliding = []
         self.hearts = PlayerLife(self.screen, "Life: " + self.name, 30, 30)
         self.keydown = False
@@ -352,7 +379,7 @@ class Player(pygame.sprite.Sprite):
         self.image.fill(RED)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x, y)
-        self.direction = "x+"
+        self.direction = pygame.math.Vector2()
 
     def __str__(self):
         return self.name
@@ -394,19 +421,30 @@ class Player(pygame.sprite.Sprite):
 
     def update_pose(self, objects, game):
         button = pygame.key.get_pressed()
+        self.direction = pygame.math.Vector2(0, 0)
 
         if button[pygame.K_a]:
-            self.x -= self.speed
-            self.direction = "x-"
+            self.direction.x = -1
+
         if button[pygame.K_d]:
-            self.x += self.speed
-            self.direction = "x+"
+            self.direction.x = 1
+
         if button[pygame.K_w]:
-            self.y -= self.speed
-            self.direction = "y-"
+            self.direction.y = -1
+
         if button[pygame.K_s]:
-            self.y += self.speed
-            self.direction = "y+"
+            self.direction.y = 1
+
+        if self.direction.magnitude() != 0:
+            self.direction = self.direction.normalize()
+
+        self.x += int(self.direction.x * self.speed)
+        self.y += int(self.direction.y * self.speed)
+
+        self.x = max(0, self.x)
+        self.y = max(0, self.y)
+        self.x = min(WORLD_WIDTH, self.x)
+        self.y = min(WORLD_HEIGHT, self.y)
 
         self.rect.x = self.x
         self.rect.y = self.y
@@ -432,16 +470,45 @@ class Player(pygame.sprite.Sprite):
 
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
-                    print(self, "collided with", obj)
+                    # print(self, "collided with", obj)
                     game.new_background = True
 
         # print(self, "collided with ", obj)
 
 
+class Camera:
+    def __init__(self):
+        self.width = SCREEN_WIDTH
+        self.height = SCREEN_HEIGHT
+        self.camera = pygame.Rect(0, 0, self.width, self.height)
+
+    def apply(self, entity):
+        """Apply the camera offset to an entity."""
+        x, y = self.camera.topleft
+        return entity.rect.move((-x, -y))
+
+    def update(self, player):
+        """Update the camera to follow the target."""
+        camera_x = max(
+            0,
+            min(player.x - self.width // 2, WORLD_WIDTH - self.width),
+        )
+        camera_y = max(
+            0,
+            min(
+                player.y - self.height // 2,
+                WORLD_HEIGHT - self.height,
+            ),
+        )
+
+        self.camera = pygame.Rect(camera_x, camera_y, self.width, self.height)
+        print("CAMERA", camera_x, camera_y, player.x, player.y)
+
+
 class Game:
     def __init__(self):
         pygame.init()
-        # tekst
+        self.camera = Camera()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.tekst_size = pygame.font.Font(None, 60)
         self.new_background = False
@@ -478,7 +545,7 @@ class Game:
             self.background_image = pygame.image.load("main.background.jpg")
 
         self.background_image = pygame.transform.scale(
-            self.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)
+            self.background_image, (WORLD_WIDTH, WORLD_HEIGHT)
         )
 
         for line in kart.readlines():
@@ -520,8 +587,36 @@ class Game:
         self.player = player
         self.sword = sword
 
+    def old_camera(self):
+        # camera_x = self.player.x - WORLD_WIDTH // 2
+        # camera_y = self.player.y - WORLD_HEIGHT // 2
+        # print(f"camera_y {-camera_y}, camera_x {-camera_x}")
+        # print(f"player_x {self.player.x}, player_y {self.player.y} ")
+
+        # setter x og y kordinaten til camera oppå player
+        camera_x = max(
+            0,
+            min(
+                self.player.x - self.screen_width // 2, WORLD_WIDTH - self.screen_width
+            ),
+        )
+        camera_y = max(
+            0,
+            min(
+                self.player.y - self.screen_height // 2,
+                WORLD_HEIGHT - self.screen_height,
+            ),
+        )
+
+        camera_surface = pygame.Surface((self.screen_width, self.screen_height))
+        camera_surface.fill((WHITE))
+
+        camera_surface.blit(self.screen, (camera_x, camera_y))
+        print("CAMERA", camera_x, camera_y, self.player.x, self.player.y)
+
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
+        # Game.camera(self)
         tekst = self.tekst_size.render(
             f"imunity_timer, {self.imunity_timer}", True, RED
         )
@@ -559,8 +654,10 @@ class Game:
 
         self.sword.update_pos(self.player)
         self.sword.attack()
-
-        self.all_objects.draw(self.screen)
+        self.camera.update(self.player)
+        for sprite in self.all_objects:
+            self.screen.blit(sprite.image, self.camera.apply(sprite))
+        # self.all_objects.draw(self.screen)
         self.player.hearts.draw()
         pygame.display.flip()
         pygame.time.Clock().tick(60)
