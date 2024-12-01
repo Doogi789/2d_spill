@@ -237,6 +237,7 @@ class PlayerLife:
     height = 50
 
     def __init__(self, screen, name, x, y):
+        self.direction = 1
         self.screen = screen
         self.x = x
         self.y = y
@@ -309,33 +310,12 @@ class PlayerSword(pygame.sprite.Sprite):
             self.timer = 0
             self.can_use_sword = False
 
-            class Camera:
-                def __init__(self, width, height):
-                    self.camera = pygame.Rect(0, 0, width, height)
-                    self.width = width
-                    self.height = height
-
-                def apply(self, entity):
-                    """Apply the camera offset to an entity."""
-                    return entity.rect.move(self.camera.topleft)
-
-                def update(self, target):
-                    """Update the camera to follow the target."""
-                    x = -target.rect.centerx + int(self.width / 2)
-                    y = -target.rect.centery + int(self.height / 2)
-
-                    # Keep the camera within the bounds of the world
-                    x = min(0, x)  # Left edge
-                    y = min(0, y)  # Top edge
-                    x = max(-(self.width - SCREEN_WIDTH), x)  # Right edge
-                    y = max(-(self.height - SCREEN_HEIGHT), y)  # Bottom edge
-
-                    self.camera = pygame.Rect(x, y, self.width, self.height)
-
     def update_pos(self, player):
-        self.direction = player.direction
         if self.show_sword:
             self.timer += 1
+            if player.direction == pygame.math.Vector2(0, 0):
+                self.image = self.image_xpluss
+                self.rect = self.image.get_rect(midleft=player.rect.midleft)
             if player.direction.x == 1:
                 self.image = self.image_xpluss
                 self.rect = self.image.get_rect(midleft=player.rect.midleft)
@@ -351,9 +331,6 @@ class PlayerSword(pygame.sprite.Sprite):
             elif player.direction.y == -1:
                 self.image = self.image_yminus
                 self.rect = self.image.get_rect(midbottom=player.rect.midbottom)
-
-            else:
-                raise RuntimeError("BAD DIRCTION", player.direction)
 
             if self.timer == 10:
                 self.image = self.hidden_image
