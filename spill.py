@@ -1,6 +1,8 @@
-import pygame
+"""My 2d topdown game"""
+
 from random import randint
 from enum import Enum, auto
+import pygame
 
 
 WHITE = (255, 255, 255)
@@ -34,17 +36,17 @@ def split_into_chunks(n, x):
     return chunks
 
 
-def knockback(obj, x, y, game):
-    knockback = 25
+def knockback(obj, x, y):
+    force = 25
     print(obj)
     if obj.direction.x == 1:
-        x += knockback
+        x += force
     if obj.direction.x == -1:
-        x -= knockback
+        x -= force
     if obj.direction.y == 1:
-        y += knockback
+        y += force
     if obj.direction.y == -1:
-        y -= knockback
+        y -= force
 
     return (x, y)
 
@@ -113,7 +115,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = 2
         self.target_y = randint(0, WORLD_HEIGHT - self.height)
         self.target_x = randint(0, WORLD_WIDTH - self.width)
-        self.life = 50
+        self.life = 10
         # knockback
         self.direction = pygame.math.Vector2()
 
@@ -177,7 +179,7 @@ class Enemy(pygame.sprite.Sprite):
             if isinstance(obj, (PlayerSword)):
                 if self.rect.colliderect(obj.rect):
                     self.life -= 10
-                    self.x, self.y = knockback(obj, self.x, self.y, game)
+                    self.x, self.y = knockback(obj, self.x, self.y)
 
                     #  print(self, "collided with ", obj)
 
@@ -311,6 +313,7 @@ class PlayerSword(pygame.sprite.Sprite):
             self.can_use_sword = False
 
     def update_pos(self, player):
+        self.direction = player.direction
         if self.show_sword:
             self.timer += 1
             if player.direction == pygame.math.Vector2(0, 0):
@@ -372,7 +375,7 @@ class Player(pygame.sprite.Sprite):
                     (
                         self.x,
                         self.y,
-                    ) = knockback(obj, self.x, self.y, game)
+                    ) = knockback(obj, self.x, self.y)
 
                     if obj not in self.colliding:
                         self.hearts.decrease()
@@ -402,16 +405,12 @@ class Player(pygame.sprite.Sprite):
 
         if button[pygame.K_a]:
             self.direction.x = -1
-
         if button[pygame.K_d]:
             self.direction.x = 1
-
         if button[pygame.K_w]:
             self.direction.y = -1
-
         if button[pygame.K_s]:
             self.direction.y = 1
-
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
 
@@ -498,8 +497,8 @@ class Game:
         self.nothings = pygame.sprite.Group()
         self.crashable_objects = pygame.sprite.Group()
         self.crashable_objects.add(self.walls, self.chests, self.towers, self.nothings)
-
         self.create_world("world.map")
+
         self.player_imunity = False
         self.imunity_timer = 0
 
@@ -535,61 +534,38 @@ class Game:
                 elif col == "N":
                     nothing = Nothing(self.screen, "nothing" + str(x) + str(y), x, y)
                     self.nothings.add(nothing)
-                    self.all_objects.add(nothing)
                 elif col == "P":
                     player = Player(self.screen, "player" + str(x) + str(y), x, y)
                     sword = PlayerSword()
-                    self.all_objects.add(sword)
-                    self.all_objects.add(player)
                 elif col == "X":
                     wall = Wall(self.screen, "wall " + str(x) + str(y), x, y)
                     self.walls.add(wall)
-                    self.all_objects.add(wall)
                 elif col == "C":
                     chest = Chest(self.screen, "chest " + str(x) + str(y), x, y)
                     self.chests.add(chest)
-                    self.all_objects.add(chest)
                 elif col == "E":
                     enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
                     self.enemies.add(enemy)
-                    self.all_objects.add(enemy)
                 elif col == "T":
                     tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
                     self.towers.add(tower)
-                    self.all_objects.add(tower)
 
         if player is None or sword is None:
             raise RuntimeWarning("player must be in the map")
 
         self.player = player
         self.sword = sword
-
-    def old_camera(self):
-        # camera_x = self.player.x - WORLD_WIDTH // 2
-        # camera_y = self.player.y - WORLD_HEIGHT // 2
-        # print(f"camera_y {-camera_y}, camera_x {-camera_x}")
-        # print(f"player_x {self.player.x}, player_y {self.player.y} ")
-
-        # setter x og y kordinaten til camera oppå player
-        camera_x = max(
-            0,
-            min(
-                self.player.x - self.screen_width // 2, WORLD_WIDTH - self.screen_width
-            ),
+        self.all_objects.add(
+            (
+                self.towers,
+                self.enemies,
+                self.chests,
+                self.walls,
+                self.sword,
+                self.player,
+                self.nothings,
+            )
         )
-        camera_y = max(
-            0,
-            min(
-                self.player.y - self.screen_height // 2,
-                WORLD_HEIGHT - self.screen_height,
-            ),
-        )
-
-        camera_surface = pygame.Surface((self.screen_width, self.screen_height))
-        camera_surface.fill((WHITE))
-
-        camera_surface.blit(self.screen, (camera_x, camera_y))
-        print("CAMERA", camera_x, camera_y, self.player.x, self.player.y)
 
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
@@ -623,8 +599,8 @@ class Game:
                 if obj.life <= 0:
                     pygame.sprite.Sprite.kill(obj)
 
-        for self.enemy in self.enemies:
-            self.enemy.update_pose(self.all_objects, self.player.x, self.player.y)
+        for enemy in self.enemies:
+            enemy.update_pose(self.all_objects, self.player.x, self.player.y)
 
         self.player.update_life(self.all_objects)
         self.player.update_pose(self.all_objects, game)
@@ -643,12 +619,12 @@ class Game:
 if __name__ == "__main__":
     game = Game()
 
-    running = True
-    while running:
+    RUNNING = True
+    while RUNNING:
         game.step()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                RUNNING = False
             #   if event.type == pygame.KEYDOWN:
             #   print("KEYDOWN",event)
