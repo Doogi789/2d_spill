@@ -4,7 +4,6 @@ from random import randint
 from enum import Enum, auto
 import pygame
 
-
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
@@ -63,6 +62,29 @@ class Nothing(pygame.sprite.Sprite):
         self.y = y
         self.image = pygame.Surface((self.width, self.height))
         self.image.fill(BLACK)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x, y)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+
+class House(pygame.sprite.Sprite):
+    width = 60
+    height = 60
+
+    def __init__(self, screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.name = name
+        self.original_image = pygame.image.load("house.png")
+        self.image = pygame.transform.scale(
+            self.original_image, (self.width, self.height)
+        )
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x, y)
 
@@ -156,7 +178,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
         for obj in objects:
-            if isinstance(obj, (Chest, Tower)):
+            if isinstance(obj, (Chest, Tower, House)):
                 if self.rect.colliderect(obj.rect):
                     dx = self.rect.centerx - obj.rect.centerx
                     dy = self.rect.centery - obj.rect.centery
@@ -447,9 +469,14 @@ class Player(pygame.sprite.Sprite):
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
                     # print(self, "collided with", obj)
-                    game.new_background = True
+                    game.new_background_tower = True
 
-        # print(self, "collided with ", obj)
+            elif isinstance(obj, House):
+                if self.rect.colliderect(obj.rect):
+                    # print(self, "collided with", obj)
+                    game.new_background_house = True
+
+            # print(self, "collided with ", obj)
 
 
 class Camera:
@@ -478,7 +505,7 @@ class Camera:
         )
 
         self.camera = pygame.Rect(camera_x, camera_y, self.width, self.height)
-        print("CAMERA", camera_x, camera_y, player.x, player.y)
+        # print("CAMERA", camera_x, camera_y, player.x, player.y)
 
 
 class Game:
@@ -487,7 +514,8 @@ class Game:
         self.camera = Camera()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.tekst_size = pygame.font.Font(None, 60)
-        self.new_background = False
+        self.new_background_tower = False
+        self.new_background_house = False
         # creating world
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
@@ -495,8 +523,11 @@ class Game:
         self.chests = pygame.sprite.Group()
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
+        self.houses = pygame.sprite.Group()
         self.crashable_objects = pygame.sprite.Group()
-        self.crashable_objects.add(self.walls, self.chests, self.towers, self.nothings)
+        self.crashable_objects.add(
+            self.walls, self.chests, self.towers, self.nothings, self.houses
+        )
         self.create_world("world.map")
 
         self.player_imunity = False
@@ -514,8 +545,11 @@ class Game:
         self.chests = pygame.sprite.Group()
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
+        self.houses = pygame.sprite.Group()
 
         if name.startswith("tower"):
+            self.background_image = pygame.image.load("tower.background.png")
+        elif name.startswith("house"):
             self.background_image = pygame.image.load("tower.background.png")
         else:
             self.background_image = pygame.image.load("main.background.jpg")
@@ -546,6 +580,9 @@ class Game:
                 elif col == "E":
                     enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
                     self.enemies.add(enemy)
+                elif col == "H":
+                    house = House(self.screen, "house" + str(x) + str(y), x, y)
+                    self.houses.add(house)
                 elif col == "T":
                     tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
                     self.towers.add(tower)
@@ -564,6 +601,7 @@ class Game:
                 self.sword,
                 self.player,
                 self.nothings,
+                self.houses,
             )
         )
 
@@ -576,9 +614,13 @@ class Game:
         tekst_rect = tekst.get_rect(center=(240, 30))
         self.screen.blit(tekst, tekst_rect)
 
-        if self.new_background:
+        if self.new_background_tower:
             self.create_world("tower.map")
-            self.new_background = False
+            self.new_background_tower = False
+
+        if self.new_background_house:
+            self.create_world("house.map")
+            self.new_background_house = False
 
         if self.player.hearts.dead:
             tekst = self.tekst_size.render("GAME OVER", True, RED)
