@@ -50,6 +50,24 @@ def knockback(obj, x, y):
     return (x, y)
 
 
+def collision(obj, rect, x, y):
+    dx = rect.centerx - obj.rect.centerx
+    dy = rect.centery - obj.rect.centery
+
+    if abs(dx) > abs(dy):
+        if dx > 0:
+            rect.x = obj.rect.right
+        else:
+            rect.x = obj.rect.left - rect.width
+    else:
+        if dy > 0:
+            rect.y = obj.rect.bottom
+        else:
+            rect.y = obj.rect.top - rect.height
+
+    return rect.x, rect.y
+
+
 class Nothing(pygame.sprite.Sprite):
     width = 30
     height = 30
@@ -180,23 +198,13 @@ class Enemy(pygame.sprite.Sprite):
         for obj in objects:
             if isinstance(obj, (Chest, Tower, House)):
                 if self.rect.colliderect(obj.rect):
-                    dx = self.rect.centerx - obj.rect.centerx
-                    dy = self.rect.centery - obj.rect.centery
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
-                    if abs(dx) > abs(dy):
-                        if dx > 0:
-                            self.x = obj.rect.right
-                        else:
-                            self.x = obj.rect.left - self.rect.width
-                    else:
-                        if dy > 0:
-                            self.y = obj.rect.bottom
-                        else:
-                            self.y = obj.rect.top - self.rect.height
             if isinstance(obj, (Wall)):
                 if self.rect.colliderect(obj.rect):
                     self.target_y = randint(0, WORLD_HEIGHT - self.height)
                     self.target_x = randint(0, WORLD_WIDTH - self.width)
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
             if isinstance(obj, (PlayerSword)):
                 if self.rect.colliderect(obj.rect):
@@ -388,16 +396,13 @@ class Player(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
-    def update_life(self, objects):
+    def update_life(self, objects, game):
         for obj in objects:
             if isinstance(obj, Enemy):
                 if self.rect.colliderect(obj.rect) and not game.player_imunity:
                     game.player_imunity = True
                     # print(self, "collided with", obj)
-                    (
-                        self.x,
-                        self.y,
-                    ) = knockback(obj, self.x, self.y)
+                    self.x, self.y = knockback(obj, self.x, self.y)
 
                     if obj not in self.colliding:
                         self.hearts.decrease()
@@ -409,6 +414,7 @@ class Player(pygame.sprite.Sprite):
 
             if isinstance(obj, Chest):
                 if self.rect.colliderect(obj.rect):
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
                     # print(self, "collidedage.get_rect with ", obj)
 
                     if obj not in self.colliding:
@@ -450,31 +456,19 @@ class Player(pygame.sprite.Sprite):
         for obj in objects:
             if isinstance(obj, (Wall, Nothing)):
                 if self.rect.colliderect(obj.rect):
-                    dx = self.rect.centerx - obj.rect.centerx
-                    dy = self.rect.centery - obj.rect.centery
-
-                    if abs(dx) > abs(dy):
-                        if dx > 0:
-                            self.x = obj.rect.right
-                        else:
-                            self.x = obj.rect.left - self.rect.width
-                    #  print(self, "collided with ", obj)
-                    else:
-                        if dy > 0:
-                            self.y = obj.rect.bottom
-                        else:
-                            self.y = obj.rect.top - self.rect.height
-                    # print(self, "collided with ", obj)
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
                     # print(self, "collided with", obj)
                     game.new_background_tower = True
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
             elif isinstance(obj, House):
                 if self.rect.colliderect(obj.rect):
                     # print(self, "collided with", obj)
                     game.new_background_house = True
+                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
             # print(self, "collided with ", obj)
 
@@ -534,7 +528,7 @@ class Game:
         self.imunity_timer = 0
 
     def create_world(self, name: str):
-        kart = open(name, "r")
+        kart = open(name, "r", encoding="utf-8")
         x = 0
         y = 0
         player = None
@@ -644,7 +638,7 @@ class Game:
         for enemy in self.enemies:
             enemy.update_pose(self.all_objects, self.player.x, self.player.y)
 
-        self.player.update_life(self.all_objects)
+        self.player.update_life(self.all_objects, game)
         self.player.update_pose(self.all_objects, game)
 
         self.sword.update_pos(self.player)
