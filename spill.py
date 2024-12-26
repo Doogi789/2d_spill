@@ -1,9 +1,10 @@
 """My 2d topdown game"""
 
+import sys
 from random import randint
 from enum import Enum, auto
+
 import pygame
-# from time import sleep
 
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
@@ -51,7 +52,7 @@ def knockback(obj, x, y):
     return (x, y)
 
 
-def collision(obj, rect, x, y):
+def collision(obj, rect):
     dx = rect.centerx - obj.rect.centerx
     dy = rect.centery - obj.rect.centery
 
@@ -153,7 +154,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x, y)
         # variabler får å bevege
-        self.speed = 0.3
+        self.speed = 0.4
         self.target_y = randint(0, WORLD_HEIGHT - self.height)
         self.target_x = randint(0, WORLD_WIDTH - self.width)
         self.life = 10
@@ -165,7 +166,7 @@ class Enemy(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
-    def update_pose(self, p_x, p_y):
+    def update_pose(self, p_x, p_y, game):
         distance_player = ((self.x - p_x) ** 2 + (self.y - p_y) ** 2) ** 0.5
 
         if abs(distance_player) < 80 + self.width and not game.player_imunity:
@@ -200,13 +201,13 @@ class Enemy(pygame.sprite.Sprite):
         for obj in objects:
             if isinstance(obj, (Chest, Tower, House)):
                 if self.rect.colliderect(obj.rect):
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
 
             if isinstance(obj, (Wall)):
                 if self.rect.colliderect(obj.rect):
                     self.target_y = randint(0, WORLD_HEIGHT - self.height)
                     self.target_x = randint(0, WORLD_WIDTH - self.width)
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
 
             if isinstance(obj, (PlayerSword)):
                 if self.rect.colliderect(obj.rect):
@@ -216,9 +217,9 @@ class Enemy(pygame.sprite.Sprite):
                     #  print(self, "collided with ", obj)
 
     def update(self, game):
-        print("enemy")
+        # print("enemy")
         for enemy in game.enemies:
-            enemy.update_pose(game.player.x, game.player.y)
+            enemy.update_pose(game.player.x, game.player.y, game)
             enemy.check_col(game.all_objects)
 
 
@@ -422,7 +423,7 @@ class Player(pygame.sprite.Sprite):
 
             if isinstance(obj, Chest):
                 if self.rect.colliderect(obj.rect):
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
                     # print(self, "collidedage.get_rect with ", obj)
 
                     if obj not in self.colliding:
@@ -461,31 +462,31 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-    def check_col(self, objects):
+    def check_col(self, objects, game):
         for obj in objects:
             if isinstance(obj, (Wall, Nothing)):
                 if self.rect.colliderect(obj.rect):
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
 
             elif isinstance(obj, Tower):
                 if self.rect.colliderect(obj.rect):
                     # print(self, "collided with", obj)
                     game.new_background_tower = True
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
 
             elif isinstance(obj, House):
                 if self.rect.colliderect(obj.rect):
                     # print(self, "collided with", obj)
                     game.new_background_house = True
-                    self.x, self.y = collision(obj, self.rect, self.x, self.y)
+                    self.x, self.y = collision(obj, self.rect)
 
             # print(self, "collided with ", obj)
 
     def update(self, game):
-        print("player")
+        # print("player")
         game.player.update_pose(game)
         game.player.update_life(game.all_objects, game)
-        game.player.check_col(game.all_objects)
+        game.player.check_col(game.all_objects, game)
         game.sword.update_pos(game.player)
         game.sword.attack()
         game.player.hearts.draw()
@@ -570,11 +571,6 @@ class Game:
             self.new_background_house = False
 
     def create_world(self, name: str):
-        kart = open(name, "r", encoding="utf-8")
-        x = 0
-        y = 0
-        player = None
-        sword = None
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
@@ -593,53 +589,62 @@ class Game:
         self.background_image = pygame.transform.scale(
             self.background_image, (WORLD_WIDTH, WORLD_HEIGHT)
         )
+        self._read_kart(name)
 
-        for line in kart.readlines():
-            y += 30
-            x = 0
-            for col in line:
-                x += 30
-                if col == ".":
-                    continue
-                elif col == "N":
-                    nothing = Nothing(self.screen, "nothing" + str(x) + str(y), x, y)
-                    self.nothings.add(nothing)
-                elif col == "P":
-                    player = Player(self.screen, "player" + str(x) + str(y), x, y)
-                    sword = PlayerSword()
-                elif col == "X":
-                    wall = Wall(self.screen, "wall " + str(x) + str(y), x, y)
-                    self.walls.add(wall)
-                elif col == "C":
-                    chest = Chest(self.screen, "chest " + str(x) + str(y), x, y)
-                    self.chests.add(chest)
-                elif col == "E":
-                    enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
-                    self.enemies.add(enemy)
-                elif col == "H":
-                    house = House(self.screen, "house" + str(x) + str(y), x, y)
-                    self.houses.add(house)
-                elif col == "T":
-                    tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
-                    self.towers.add(tower)
+    def _read_kart(self, name):
+        x = 0
+        y = 0
+        player = None
+        sword = None
+        with open(name, "r", encoding="utf-8") as kart:
+            for line in kart.readlines():
+                y += 30
+                x = 0
+                for col in line:
+                    x += 30
+                    if col == ".":
+                        continue
+                    if col == "N":
+                        nothing = Nothing(
+                            self.screen, "nothing" + str(x) + str(y), x, y
+                        )
+                        self.nothings.add(nothing)
+                    elif col == "P":
+                        player = Player(self.screen, "player" + str(x) + str(y), x, y)
+                        sword = PlayerSword()
+                    elif col == "X":
+                        wall = Wall(self.screen, "wall " + str(x) + str(y), x, y)
+                        self.walls.add(wall)
+                    elif col == "C":
+                        chest = Chest(self.screen, "chest " + str(x) + str(y), x, y)
+                        self.chests.add(chest)
+                    elif col == "E":
+                        enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
+                        self.enemies.add(enemy)
+                    elif col == "H":
+                        house = House(self.screen, "house" + str(x) + str(y), x, y)
+                        self.houses.add(house)
+                    elif col == "T":
+                        tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
+                        self.towers.add(tower)
 
-        if player is None or sword is None:
-            raise RuntimeWarning("player must be in the map")
+            if player is None or sword is None:
+                raise RuntimeWarning("player must be in the map")
 
-        self.player = player
-        self.sword = sword
-        self.all_objects.add(
-            (
-                self.towers,
-                self.enemies,
-                self.chests,
-                self.walls,
-                self.sword,
-                self.player,
-                self.nothings,
-                self.houses,
+            self.player = player
+            self.sword = sword
+            self.all_objects.add(
+                (
+                    self.towers,
+                    self.enemies,
+                    self.chests,
+                    self.walls,
+                    self.sword,
+                    self.player,
+                    self.nothings,
+                    self.houses,
+                )
             )
-        )
 
     def step(self):
         self.screen.blit(self.background_image, (0, 0))
@@ -657,27 +662,26 @@ class Game:
         self.check_background()
         self.check_player()
 
-        self.enemies.update(game)
+        self.enemies.update(self)
 
         self.camera.update(self.player)
         for sprite in self.all_objects:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
 
-        self.player.update(game)
+        self.player.update(self)
 
         pygame.display.flip()
         pygame.time.Clock().tick(60)
 
 
 if __name__ == "__main__":
-    game = Game()
+    mygame = Game()
 
-    running = True
-    while running:
-        game.step()
+    while True:
+        mygame.step()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                sys.exit(0)
             #   if event.type == pygame.KEYDOWN:
             #   print("KEYDOWN",event)
