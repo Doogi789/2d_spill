@@ -3,6 +3,7 @@
 from random import randint
 from enum import Enum, auto
 import pygame
+# from time import sleep
 
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
@@ -37,7 +38,7 @@ def split_into_chunks(n, x):
 
 def knockback(obj, x, y):
     force = 25
-    print(obj)
+    # print(obj)
     if obj.direction.x == 1:
         x += force
     if obj.direction.x == -1:
@@ -152,7 +153,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
         self.rect.topleft = (x, y)
         # variabler får å bevege
-        self.speed = 2
+        self.speed = 0.3
         self.target_y = randint(0, WORLD_HEIGHT - self.height)
         self.target_x = randint(0, WORLD_WIDTH - self.width)
         self.life = 10
@@ -164,7 +165,7 @@ class Enemy(pygame.sprite.Sprite):
 
     __repr__ = __str__
 
-    def update_pose(self, objects, p_x, p_y):
+    def update_pose(self, p_x, p_y):
         distance_player = ((self.x - p_x) ** 2 + (self.y - p_y) ** 2) ** 0.5
 
         if abs(distance_player) < 80 + self.width and not game.player_imunity:
@@ -195,6 +196,7 @@ class Enemy(pygame.sprite.Sprite):
 
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
+    def check_col(self, objects):
         for obj in objects:
             if isinstance(obj, (Chest, Tower, House)):
                 if self.rect.colliderect(obj.rect):
@@ -212,6 +214,12 @@ class Enemy(pygame.sprite.Sprite):
                     self.x, self.y = knockback(obj, self.x, self.y)
 
                     #  print(self, "collided with ", obj)
+
+    def update(self, game):
+        print("enemy")
+        for enemy in game.enemies:
+            enemy.update_pose(game.player.x, game.player.y)
+            enemy.check_col(game.all_objects)
 
 
 class Wall(pygame.sprite.Sprite):
@@ -288,7 +296,7 @@ class PlayerLife:
 
     def decrease(self):
         self.life -= 1
-        if self.life < 0:
+        if self.life <= 0:
             self.dead = True
         return self.dead
 
@@ -427,7 +435,7 @@ class Player(pygame.sprite.Sprite):
 
         return self.hearts.life
 
-    def update_pose(self, objects, game):
+    def update_pose(self, game):
         button = pygame.key.get_pressed()
         self.direction = pygame.math.Vector2(0, 0)
 
@@ -453,6 +461,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
+    def check_col(self, objects):
         for obj in objects:
             if isinstance(obj, (Wall, Nothing)):
                 if self.rect.colliderect(obj.rect):
@@ -471,6 +480,15 @@ class Player(pygame.sprite.Sprite):
                     self.x, self.y = collision(obj, self.rect, self.x, self.y)
 
             # print(self, "collided with ", obj)
+
+    def update(self, game):
+        print("player")
+        game.player.update_pose(game)
+        game.player.update_life(game.all_objects, game)
+        game.player.check_col(game.all_objects)
+        game.sword.update_pos(game.player)
+        game.sword.attack()
+        game.player.hearts.draw()
 
 
 class Camera:
@@ -526,6 +544,30 @@ class Game:
 
         self.player_imunity = False
         self.imunity_timer = 0
+
+    def check_player(self):
+        if self.player.hearts.dead:
+            tekst = self.tekst_size.render("GAME OVER", True, RED)
+            tekst_rect = tekst.get_rect(center=(240, 30))
+            self.screen.blit(tekst, tekst_rect)
+            self.create_world("world.map")
+            self.player.hearts.dead = False
+
+        if self.player_imunity:
+            self.imunity_timer += 1
+
+            if self.imunity_timer == 25:
+                self.player_imunity = False
+                self.imunity_timer = 0
+
+    def check_background(self):
+        if self.new_background_tower:
+            self.create_world("tower.map")
+            self.new_background_tower = False
+
+        if self.new_background_house:
+            self.create_world("house.map")
+            self.new_background_house = False
 
     def create_world(self, name: str):
         kart = open(name, "r", encoding="utf-8")
@@ -608,46 +650,21 @@ class Game:
         tekst_rect = tekst.get_rect(center=(240, 30))
         self.screen.blit(tekst, tekst_rect)
 
-        if self.new_background_tower:
-            self.create_world("tower.map")
-            self.new_background_tower = False
-
-        if self.new_background_house:
-            self.create_world("house.map")
-            self.new_background_house = False
-
-        if self.player.hearts.dead:
-            tekst = self.tekst_size.render("GAME OVER", True, RED)
-            tekst_rect = tekst.get_rect(center=(240, 30))
-            self.screen.blit(tekst, tekst_rect)
-            self.create_world("world.map")
-            self.player.hearts.dead = False
-
-        if self.player_imunity:
-            self.imunity_timer += 1
-
-            if self.imunity_timer == 25:
-                self.player_imunity = False
-                self.imunity_timer = 0
-
-        for obj in self.all_objects:
-            if isinstance(obj, Enemy):
-                if obj.life <= 0:
-                    pygame.sprite.Sprite.kill(obj)
-
         for enemy in self.enemies:
-            enemy.update_pose(self.all_objects, self.player.x, self.player.y)
+            if enemy.life <= 0:
+                pygame.sprite.Sprite.kill(enemy)
 
-        self.player.update_life(self.all_objects, game)
-        self.player.update_pose(self.all_objects, game)
+        self.check_background()
+        self.check_player()
 
-        self.sword.update_pos(self.player)
-        self.sword.attack()
+        self.enemies.update(game)
+
         self.camera.update(self.player)
         for sprite in self.all_objects:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
-        # self.all_objects.draw(self.screen)
-        self.player.hearts.draw()
+
+        self.player.update(game)
+
         pygame.display.flip()
         pygame.time.Clock().tick(60)
 
@@ -655,12 +672,12 @@ class Game:
 if __name__ == "__main__":
     game = Game()
 
-    RUNNING = True
-    while RUNNING:
+    running = True
+    while running:
         game.step()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                RUNNING = False
+                running = False
             #   if event.type == pygame.KEYDOWN:
             #   print("KEYDOWN",event)
