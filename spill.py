@@ -91,6 +91,29 @@ class Nothing(pygame.sprite.Sprite):
     __repr__ = __str__
 
 
+class Door(pygame.sprite.Sprite):
+    width = 30
+    height = 30
+
+    def __init__(self, screen, name, x, y):
+        super().__init__()
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.name = name
+        self.original_image = pygame.image.load("door.png")
+        self.image = pygame.transform.scale(
+            self.original_image, (self.width, self.height)
+        )
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.rect.topleft = (x, y)
+
+    def __str__(self):
+        return self.name
+
+    __repr__ = __str__
+
+
 class House(pygame.sprite.Sprite):
     width = 60
     height = 60
@@ -197,9 +220,9 @@ class Enemy(pygame.sprite.Sprite):
 
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
-    def check_col(self, objects):
+    def check_collision(self, objects):
         for obj in objects:
-            if isinstance(obj, (Chest, Tower, House)):
+            if isinstance(obj, (Chest, Tower, House, Door)):
                 if self.rect.colliderect(obj.rect):
                     self.x, self.y = collision(obj, self.rect)
 
@@ -220,7 +243,7 @@ class Enemy(pygame.sprite.Sprite):
         # print("enemy")
         for enemy in game.enemies:
             enemy.update_pose(game.player.x, game.player.y, game)
-            enemy.check_col(game.all_objects)
+            enemy.check_collision(game.all_objects)
 
 
 class Wall(pygame.sprite.Sprite):
@@ -352,7 +375,6 @@ class PlayerSword(pygame.sprite.Sprite):
             self.can_use_sword = False
 
     def update_pos(self, player):
-        self.direction = player.direction
         if self.show_sword:
             self.timer += 1
             if player.direction == pygame.math.Vector2(0, 0):
@@ -436,7 +458,7 @@ class Player(pygame.sprite.Sprite):
 
         return self.hearts.life
 
-    def update_pose(self, game):
+    def update_pose(self):
         button = pygame.key.get_pressed()
         self.direction = pygame.math.Vector2(0, 0)
 
@@ -462,31 +484,36 @@ class Player(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-    def check_col(self, objects, game):
+    def check_collison(self, objects, game):
         for obj in objects:
-            if isinstance(obj, (Wall, Nothing)):
-                if self.rect.colliderect(obj.rect):
+            if self.rect.colliderect(obj.rect):
+                if isinstance(obj, (Wall, Nothing)):
                     self.x, self.y = collision(obj, self.rect)
 
-            elif isinstance(obj, Tower):
-                if self.rect.colliderect(obj.rect):
+                elif isinstance(obj, Tower):
                     # print(self, "collided with", obj)
                     game.new_background_tower = True
                     self.x, self.y = collision(obj, self.rect)
 
-            elif isinstance(obj, House):
-                if self.rect.colliderect(obj.rect):
+                elif isinstance(obj, House):
                     # print(self, "collided with", obj)
                     game.new_background_house = True
                     self.x, self.y = collision(obj, self.rect)
+
+                elif isinstance(obj, Door):
+                    # print(self, "collided with ", obj)
+                    if game.in_building:
+                        game.in_building = False
+                        game.new_background_world = True
+                        self.x, self.y = collision(obj, self.rect)
 
             # print(self, "collided with ", obj)
 
     def update(self, game):
         # print("player")
-        game.player.update_pose(game)
+        game.player.update_pose()
         game.player.update_life(game.all_objects, game)
-        game.player.check_col(game.all_objects, game)
+        game.player.check_collison(game.all_objects, game)
         game.sword.update_pos(game.player)
         game.sword.attack()
         game.player.hearts.draw()
@@ -527,8 +554,11 @@ class Game:
         self.camera = Camera()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.tekst_size = pygame.font.Font(None, 60)
+        # new background
         self.new_background_tower = False
         self.new_background_house = False
+        self.new_background_world = False
+        self.in_building = False
         # creating world
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
@@ -538,9 +568,12 @@ class Game:
         self.nothings = pygame.sprite.Group()
         self.houses = pygame.sprite.Group()
         self.crashable_objects = pygame.sprite.Group()
+        self.doors = pygame.sprite.Group()
         self.crashable_objects.add(
-            self.walls, self.chests, self.towers, self.nothings, self.houses
+            self.walls, self.chests, self.towers, self.nothings, self.houses, self.doors
         )
+        self.player = None
+        self.sword = None
         self.create_world("world.map")
 
         self.player_imunity = False
@@ -562,13 +595,21 @@ class Game:
                 self.imunity_timer = 0
 
     def check_background(self):
+        # print(self.in_building)
         if self.new_background_tower:
             self.create_world("tower.map")
             self.new_background_tower = False
+            self.in_building = True
 
         if self.new_background_house:
             self.create_world("house.map")
             self.new_background_house = False
+            self.in_building = True
+
+        if self.new_background_world:
+            self.create_world("world.map")
+            self.new_background_world = False
+            self.in_building = False
 
     def create_world(self, name: str):
         self.all_objects = pygame.sprite.Group()
@@ -578,6 +619,7 @@ class Game:
         self.towers = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
         self.houses = pygame.sprite.Group()
+        self.doors = pygame.sprite.Group()
 
         if name.startswith("tower"):
             self.background_image = pygame.image.load("tower.background.png")
@@ -605,28 +647,29 @@ class Game:
                     if col == ".":
                         continue
                     if col == "N":
-                        nothing = Nothing(
-                            self.screen, "nothing" + str(x) + str(y), x, y
-                        )
-                        self.nothings.add(nothing)
+                        obj = Nothing(self.screen, "nothing" + str(x) + str(y), x, y)
+                        self.nothings.add(obj)
                     elif col == "P":
                         player = Player(self.screen, "player" + str(x) + str(y), x, y)
                         sword = PlayerSword()
                     elif col == "X":
-                        wall = Wall(self.screen, "wall " + str(x) + str(y), x, y)
-                        self.walls.add(wall)
+                        obj = Wall(self.screen, "wall " + str(x) + str(y), x, y)
+                        self.walls.add(obj)
                     elif col == "C":
-                        chest = Chest(self.screen, "chest " + str(x) + str(y), x, y)
-                        self.chests.add(chest)
+                        obj = Chest(self.screen, "chest " + str(x) + str(y), x, y)
+                        self.chests.add(obj)
                     elif col == "E":
-                        enemy = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
-                        self.enemies.add(enemy)
+                        obj = Enemy(self.screen, "enemy " + str(x) + str(y), x, y)
+                        self.enemies.add(obj)
                     elif col == "H":
-                        house = House(self.screen, "house" + str(x) + str(y), x, y)
-                        self.houses.add(house)
+                        obj = House(self.screen, "house" + str(x) + str(y), x, y)
+                        self.houses.add(obj)
                     elif col == "T":
-                        tower = Tower(self.screen, "tower " + str(x) + str(y), x, y)
-                        self.towers.add(tower)
+                        obj = Tower(self.screen, "tower " + str(x) + str(y), x, y)
+                        self.towers.add(obj)
+                    elif col == "D":
+                        obj = Door(self.screen, "door" + str(x) + str(y), x, y)
+                        self.doors.add(obj)
 
             if player is None or sword is None:
                 raise RuntimeWarning("player must be in the map")
@@ -643,6 +686,7 @@ class Game:
                     self.player,
                     self.nothings,
                     self.houses,
+                    self.doors,
                 )
             )
 
