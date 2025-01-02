@@ -11,7 +11,7 @@ BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 WORLD_HEIGHT = 1000
-WORLD_WIDTH = 1000
+WORLD_WIDTH = 2000
 SCREEN_HEIGHT = 500
 SCREEN_WIDTH = 500
 
@@ -464,13 +464,13 @@ class Player(pygame.sprite.Sprite):
         button = pygame.key.get_pressed()
         self.direction = pygame.math.Vector2(0, 0)
 
-        if button[pygame.K_a]:
+        if button[pygame.K_a] or button[pygame.K_LEFT]:
             self.direction.x = -1
-        if button[pygame.K_d]:
+        if button[pygame.K_d] or button[pygame.K_RIGHT]:
             self.direction.x = 1
-        if button[pygame.K_w]:
+        if button[pygame.K_w] or button[pygame.K_UP]:
             self.direction.y = -1
-        if button[pygame.K_s]:
+        if button[pygame.K_s] or button[pygame.K_DOWN]:
             self.direction.y = 1
         if self.direction.magnitude() != 0:
             self.direction = self.direction.normalize()
