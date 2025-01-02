@@ -364,6 +364,7 @@ class PlayerSword(pygame.sprite.Sprite):
         self.timer = 0
         self.show_sword = False
         self.can_use_sword = False
+        self.direction = pygame.math.Vector2()
 
     def attack(self):
         button = pygame.key.get_pressed()
@@ -631,7 +632,7 @@ class Game:
                     # print(object_to_place, x, y, object_to_place.rect)
                     object_to_place.x = x
                     object_to_place.y = y
-                    return object_to_place
+                    return
 
     def create_world(self, name: str):
         self.all_objects = pygame.sprite.Group()
