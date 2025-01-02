@@ -375,6 +375,7 @@ class PlayerSword(pygame.sprite.Sprite):
             self.can_use_sword = False
 
     def update_pos(self, player):
+        self.direction = player.direction
         if self.show_sword:
             self.timer += 1
             if player.direction == pygame.math.Vector2(0, 0):
@@ -579,6 +580,8 @@ class Game:
         self.player_imunity = False
         self.imunity_timer = 0
 
+        self.buildings = {}
+
     def check_player(self):
         if self.player.hearts.dead:
             tekst = self.tekst_size.render("GAME OVER", True, RED)
@@ -611,6 +614,25 @@ class Game:
             self.new_background_world = False
             self.in_building = False
 
+    def move_to_available_x_y(self, object_to_place):
+        #        if whatever in self.buildings:
+        #            raise RuntimeError(f"{whatever} is already in buldings")
+        for _ in range(3000):
+            x = randint(0, WORLD_HEIGHT)
+            y = randint(0, WORLD_WIDTH)
+            object_to_place.rect.move_ip(x, y)
+            for obj in self.all_objects:
+                if not object_to_place.rect.colliderect(
+                    obj.rect
+                ):  # og ikke i "home of player"
+                    #    if isinstance(object_to_place, (House, Tower)):
+                    #        self.buildings[object_to_place] = (x, y)
+
+                    # print(object_to_place, x, y, object_to_place.rect)
+                    object_to_place.x = x
+                    object_to_place.y = y
+                    return object_to_place
+
     def create_world(self, name: str):
         self.all_objects = pygame.sprite.Group()
         self.enemies = pygame.sprite.Group()
@@ -628,6 +650,12 @@ class Game:
         else:
             self.background_image = pygame.image.load("main.background.jpg")
 
+            for _ in range(4):
+                enemy = Enemy(self.screen, "enemy", 0, 0)
+                self.move_to_available_x_y(enemy)
+                self.enemies.add(enemy)
+                self.all_objects.add(enemy)
+
         self.background_image = pygame.transform.scale(
             self.background_image, (WORLD_WIDTH, WORLD_HEIGHT)
         )
@@ -638,12 +666,15 @@ class Game:
         y = 0
         player = None
         sword = None
+        round_y = 0
+        round_x = 0
         with open(name, "r", encoding="utf-8") as kart:
             for line in kart.readlines():
-                y += 30
-                x = 0
+                y = 30 * round_y
+                round_x = 0
                 for col in line:
-                    x += 30
+                    x = 30 * round_x
+                    round_x += 1
                     if col == ".":
                         continue
                     if col == "N":
@@ -670,6 +701,8 @@ class Game:
                     elif col == "D":
                         obj = Door(self.screen, "door" + str(x) + str(y), x, y)
                         self.doors.add(obj)
+
+                round_y += 1
 
             if player is None or sword is None:
                 raise RuntimeWarning("player must be in the map")
