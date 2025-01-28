@@ -1,7 +1,7 @@
 """My 2d topdown game"""
 
 import sys
-from random import randint
+import random
 from enum import Enum, auto
 
 import pygame
@@ -178,8 +178,8 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.topleft = (x, y)
         # variabler får å bevege
         self.speed = 0.4
-        self.target_y = randint(0, WORLD_HEIGHT - self.height)
-        self.target_x = randint(0, WORLD_WIDTH - self.width)
+        self.target_y = random.randint(0, WORLD_HEIGHT - self.height)
+        self.target_x = random.randint(0, WORLD_WIDTH - self.width)
         self.life = 10
         # knockback
         self.direction = pygame.math.Vector2()
@@ -215,8 +215,8 @@ class Enemy(pygame.sprite.Sprite):
                     self.y -= self.speed
                     self.direction.y = -1
         else:
-            self.target_y = randint(0, WORLD_HEIGHT - self.height)
-            self.target_x = randint(0, WORLD_WIDTH - self.width)
+            self.target_y = random.randint(0, WORLD_HEIGHT - self.height)
+            self.target_x = random.randint(0, WORLD_WIDTH - self.width)
 
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
@@ -228,8 +228,8 @@ class Enemy(pygame.sprite.Sprite):
 
             if isinstance(obj, (Wall)):
                 if self.rect.colliderect(obj.rect):
-                    self.target_y = randint(0, WORLD_HEIGHT - self.height)
-                    self.target_x = randint(0, WORLD_WIDTH - self.width)
+                    self.target_y = random.randint(0, WORLD_HEIGHT - self.height)
+                    self.target_x = random.randint(0, WORLD_WIDTH - self.width)
                     self.x, self.y = collision(obj, self.rect)
 
             if isinstance(obj, (PlayerSword)):
@@ -616,22 +616,28 @@ class Game:
             self.in_building = False
 
     def move_to_available_x_y(self, object_to_place):
-        #        if whatever in self.buildings:
-        #            raise RuntimeError(f"{whatever} is already in buldings")
-        for _ in range(3000):
-            x = randint(0, WORLD_HEIGHT)
-            y = randint(0, WORLD_WIDTH)
+        rect = pygame.Rect(0, 0, 390, 180)
+        # print("move to available", object_to_place)
+        for _ in range(20):
+            x = random.randint(0, WORLD_HEIGHT)
+            y = random.randint(0, WORLD_WIDTH)
+            # print("loop", x, y, object_to_place)
             object_to_place.rect.move_ip(x, y)
+            # print("start loop")
             for obj in self.all_objects:
+                # print(x, y)
+                # print(object_to_place)
                 if not object_to_place.rect.colliderect(
                     obj.rect
-                ):  # og ikke i "home of player"
+                ) and not object_to_place.rect.colliderect(rect):
+                    # print("plass", x, y)
                     #    if isinstance(object_to_place, (House, Tower)):
                     #        self.buildings[object_to_place] = (x, y)
 
                     # print(object_to_place, x, y, object_to_place.rect)
                     object_to_place.x = x
                     object_to_place.y = y
+                    # print("return", x, y, object_to_place)
                     return
 
     def create_world(self, name: str):
@@ -643,6 +649,7 @@ class Game:
         self.nothings = pygame.sprite.Group()
         self.houses = pygame.sprite.Group()
         self.doors = pygame.sprite.Group()
+        house_or_tower = [House, Tower]
 
         if name.startswith("tower"):
             self.background_image = pygame.image.load("tower.background.png")
@@ -651,16 +658,25 @@ class Game:
         else:
             self.background_image = pygame.image.load("main.background.jpg")
 
-            for _ in range(4):
-                enemy = Enemy(self.screen, "enemy", 0, 0)
-                self.move_to_available_x_y(enemy)
-                self.enemies.add(enemy)
-                self.all_objects.add(enemy)
-
         self.background_image = pygame.transform.scale(
             self.background_image, (WORLD_WIDTH, WORLD_HEIGHT)
         )
         self._read_kart(name)
+
+        for i in range(4):
+            print("make enemy", i)
+            enemy = Enemy(self.screen, "enemy" + str(i), 0, 0)
+            self.move_to_available_x_y(enemy)
+            print("move", i, enemy, enemy.x, enemy.y)
+            self.enemies.add(enemy)
+            self.all_objects.add(enemy)
+
+        for i in range(20):
+            bulding = random.choice(house_or_tower)
+            house = bulding(self.screen, "house" + str(i), 0, 0)
+            self.move_to_available_x_y(house)
+            self.houses.add(house)
+            self.all_objects.add(house)
 
     def _read_kart(self, name):
         x = 0
