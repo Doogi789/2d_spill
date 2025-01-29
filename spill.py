@@ -115,8 +115,8 @@ class Door(pygame.sprite.Sprite):
 
 
 class House(pygame.sprite.Sprite):
-    width = 60
-    height = 60
+    width = 30
+    height = 30
 
     def __init__(self, screen, name, x, y):
         super().__init__()
@@ -138,8 +138,8 @@ class House(pygame.sprite.Sprite):
 
 
 class Tower(pygame.sprite.Sprite):
-    width = 60
-    height = 90
+    width = 30
+    height = 30
 
     def __init__(self, screen, name, x, y):
         super().__init__()
@@ -222,11 +222,7 @@ class Enemy(pygame.sprite.Sprite):
 
     def check_collision(self, objects):
         for obj in objects:
-            if isinstance(obj, (Chest, Tower, House, Door)):
-                if self.rect.colliderect(obj.rect):
-                    self.x, self.y = collision(obj, self.rect)
-
-            if isinstance(obj, (Wall)):
+            if isinstance(obj, (Wall, Chest, Tower, House, Door)):
                 if self.rect.colliderect(obj.rect):
                     self.target_y = random.randint(0, WORLD_HEIGHT - self.height)
                     self.target_x = random.randint(0, WORLD_WIDTH - self.width)
@@ -566,13 +562,12 @@ class Game:
         self.enemies = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
         self.chests = pygame.sprite.Group()
-        self.towers = pygame.sprite.Group()
+        self.buldings = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
-        self.houses = pygame.sprite.Group()
         self.crashable_objects = pygame.sprite.Group()
         self.doors = pygame.sprite.Group()
         self.crashable_objects.add(
-            self.walls, self.chests, self.towers, self.nothings, self.houses, self.doors
+            self.walls, self.chests, self.buldings, self.nothings, self.doors
         )
         self.player = None
         self.sword = None
@@ -580,8 +575,6 @@ class Game:
 
         self.player_imunity = False
         self.imunity_timer = 0
-
-        self.buildings = {}
 
     def check_player(self):
         if self.player.hearts.dead:
@@ -601,14 +594,14 @@ class Game:
     def check_background(self):
         # print(self.in_building)
         if self.new_background_tower:
+            self.in_building = True
             self.create_world("tower.map")
             self.new_background_tower = False
-            self.in_building = True
 
         if self.new_background_house:
+            self.in_building = True
             self.create_world("house.map")
             self.new_background_house = False
-            self.in_building = True
 
         if self.new_background_world:
             self.create_world("world.map")
@@ -618,7 +611,7 @@ class Game:
     def move_to_available_x_y(self, object_to_place):
         rect = pygame.Rect(0, 0, 390, 180)
         # print("move to available", object_to_place)
-        for _ in range(20):
+        for _ in range(3000):
             x = random.randint(0, WORLD_HEIGHT)
             y = random.randint(0, WORLD_WIDTH)
             # print("loop", x, y, object_to_place)
@@ -645,11 +638,9 @@ class Game:
         self.enemies = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
         self.chests = pygame.sprite.Group()
-        self.towers = pygame.sprite.Group()
+        self.buldings = pygame.sprite.Group()
         self.nothings = pygame.sprite.Group()
-        self.houses = pygame.sprite.Group()
         self.doors = pygame.sprite.Group()
-        house_or_tower = [House, Tower]
 
         if name.startswith("tower"):
             self.background_image = pygame.image.load("tower.background.png")
@@ -663,20 +654,23 @@ class Game:
         )
         self._read_kart(name)
 
-        for i in range(4):
-            print("make enemy", i)
-            enemy = Enemy(self.screen, "enemy" + str(i), 0, 0)
-            self.move_to_available_x_y(enemy)
-            print("move", i, enemy, enemy.x, enemy.y)
-            self.enemies.add(enemy)
-            self.all_objects.add(enemy)
+        if not self.in_building:
+            # print("make random enemy and bulidng", self.in_building)
+            for i in range(4):
+                # print("make enemy", i)lidng
+                enemy = Enemy(self.screen, "enemy" + str(i), 0, 0)
+                self.move_to_available_x_y(enemy)
+                # print("move", i, enemy, enemy.x, enemy.y)
+                self.enemies.add(enemy)
+                self.all_objects.add(enemy)
 
-        for i in range(20):
-            bulding = random.choice(house_or_tower)
-            house = bulding(self.screen, "house" + str(i), 0, 0)
-            self.move_to_available_x_y(house)
-            self.houses.add(house)
-            self.all_objects.add(house)
+            house_or_tower = [House, Tower]
+            for i in range(20):
+                bulding_type = random.choice(house_or_tower)
+                house = bulding_type(self.screen, "house" + str(i), 0, 0)
+                self.move_to_available_x_y(house)
+                self.buldings.add(house)
+                self.all_objects.add(house)
 
     def _read_kart(self, name):
         x = 0
@@ -711,10 +705,10 @@ class Game:
                         self.enemies.add(obj)
                     elif col == "H":
                         obj = House(self.screen, "house" + str(x) + str(y), x, y)
-                        self.houses.add(obj)
+                        self.buldings.add(obj)
                     elif col == "T":
                         obj = Tower(self.screen, "tower " + str(x) + str(y), x, y)
-                        self.towers.add(obj)
+                        self.buldings.add(obj)
                     elif col == "D":
                         obj = Door(self.screen, "door" + str(x) + str(y), x, y)
                         self.doors.add(obj)
@@ -728,14 +722,13 @@ class Game:
             self.sword = sword
             self.all_objects.add(
                 (
-                    self.towers,
+                    self.buldings,
                     self.enemies,
                     self.chests,
                     self.walls,
                     self.sword,
                     self.player,
                     self.nothings,
-                    self.houses,
                     self.doors,
                 )
             )
